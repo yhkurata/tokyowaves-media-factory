@@ -2,8 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import {
   EXTRACTION_JSON_SCHEMA,
   type ExtractionResult,
-} from "./extractionSchema.ts";
-import { EXTRACTION_SYSTEM_PROMPT } from "./extractionPrompt.ts";
+} from "./extractionSchema";
+import { EXTRACTION_SYSTEM_PROMPT } from "./extractionPrompt";
 
 export type SupportedMediaType = "image/png" | "image/jpeg" | "application/pdf";
 

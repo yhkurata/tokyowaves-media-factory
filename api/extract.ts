@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   runExtraction,
   type ExtractRequestBody,
-} from "../server/extractHandler.ts";
+} from "../server/extractHandler";
 
 // 本番デプロイ（Vercel）用のエントリーポイント。
 // ローカル開発（npm run dev）では server/viteExtractPlugin.ts が同じ
