@@ -13,7 +13,9 @@ import { AccordionSection } from "./AccordionSection";
 import { ReviewChecklist } from "./ReviewChecklist";
 import { PreviewGallery } from "./PreviewGallery";
 import { buildSections, buildExportUnits } from "../../lib/templateSections";
-import { buildReviewItems } from "../../lib/reviewItems";
+import { buildReviewItems, teamNameGapRatio } from "../../lib/reviewItems";
+
+const TEAM_NAME_GAP_SUGGESTION_THRESHOLD = 0.3;
 
 type AnalysisSummary = {
   matchCount: number;
@@ -36,6 +38,7 @@ type Props = {
   onUpdateVenueName: (dayId: string, venueId: string, name: string) => void;
   onRemoveVenue: (dayId: string, venueId: string) => void;
   onProceedToExport: () => void;
+  onAddMoreFiles: () => void;
 };
 
 export function ConfirmStep({
@@ -54,6 +57,7 @@ export function ConfirmStep({
   onUpdateVenueName,
   onRemoveVenue,
   onProceedToExport,
+  onAddMoreFiles,
 }: Props) {
   const [detailedEditOpen, setDetailedEditOpen] = useState(false);
   const { tournament } = tournamentData;
@@ -87,6 +91,9 @@ export function ConfirmStep({
   const sections = buildSections(state);
   const sectionById = Object.fromEntries(sections.map((s) => [s.id, s]));
 
+  const showTeamNameGapSuggestion =
+    teamNameGapRatio(timetableData.matches) >= TEAM_NAME_GAP_SUGGESTION_THRESHOLD;
+
   return (
     <div className="space-y-6">
       {analysisSummary && (
@@ -108,6 +115,23 @@ export function ConfirmStep({
               主要な項目はすべて自動入力できました。プレビューに間違いがないかだけ確認してください。
             </p>
           )}
+        </div>
+      )}
+
+      {showTeamNameGapSuggestion && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-300 bg-blue-50 p-4 text-sm text-blue-900">
+          <p>
+            対戦カード（チーム名）が多くの試合で未入力です。
+            <br />
+            リーグ組み合わせ表・トーナメント表など、チーム名が載った資料を追加でアップロードすると、AIが試合No.をもとに自動で埋めます。手入力する前にお試しください。
+          </p>
+          <button
+            type="button"
+            onClick={onAddMoreFiles}
+            className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+          >
+            ＋ 資料を追加する
+          </button>
         </div>
       )}
 

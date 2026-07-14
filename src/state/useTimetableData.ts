@@ -52,6 +52,42 @@ export function useTimetableData() {
     setMatches(next);
   };
 
+  // AI解析結果の反映用：試合No.をキーに、既存の値は残したまま空欄だけを埋める。
+  // タイムテーブルと組み合わせ表など、複数の資料を別々のタイミングで解析しても
+  // 後から解析した結果が先に入力済みの内容を上書きしないようにするための統合ロジック。
+  const mergeMatches = (incoming: TimetableMatch[]) => {
+    setMatches((prev) => {
+      const indexByNo = new Map<string, number>();
+      prev.forEach((m, i) => {
+        if (m.no.trim() !== "") indexByNo.set(m.no.trim(), i);
+      });
+
+      const next = [...prev];
+      const appended: TimetableMatch[] = [];
+
+      incoming.forEach((inc) => {
+        const key = inc.no.trim();
+        const existingIndex = key !== "" ? indexByNo.get(key) : undefined;
+        if (existingIndex === undefined) {
+          appended.push(inc);
+          return;
+        }
+        const existing = next[existingIndex];
+        next[existingIndex] = {
+          ...existing,
+          date: existing.date || inc.date,
+          venue: existing.venue || inc.venue,
+          time: existing.time || inc.time,
+          league: existing.league || inc.league,
+          teamA: existing.teamA || inc.teamA,
+          teamB: existing.teamB || inc.teamB,
+        };
+      });
+
+      return [...next, ...appended];
+    });
+  };
+
   const renameDate = (oldDate: string, newDate: string) => {
     if (oldDate === newDate) return;
     setMatches((prev) =>
@@ -86,6 +122,7 @@ export function useTimetableData() {
     removeMatch,
     updateMatch,
     replaceMatches,
+    mergeMatches,
     renameDate,
     renameVenue,
     removeMatchesForDate,

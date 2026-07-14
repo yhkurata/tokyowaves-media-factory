@@ -15,9 +15,10 @@ function mediaTypeForFile(file: File): SupportedMediaType | null {
 type Props = {
   errorMessage: string;
   onAnalyze: (files: File[]) => void;
+  isSupplement?: boolean;
 };
 
-export function UploadStep({ errorMessage, onAnalyze }: Props) {
+export function UploadStep({ errorMessage, onAnalyze, isSupplement }: Props) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [localError, setLocalError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,11 +58,22 @@ export function UploadStep({ errorMessage, onAnalyze }: Props) {
   return (
     <section className="mx-auto max-w-xl rounded-md border border-gray-300 bg-white p-8 text-center">
       <h2 className="text-lg font-bold text-gray-900">
-        大会資料をアップロード
+        {isSupplement ? "追加の資料をアップロード" : "大会資料をアップロード"}
       </h2>
       <p className="mt-2 text-sm text-gray-500">
-        PNG・JPEG・PDFを選択してください（最大{MAX_FILES}ファイルまで同時に添付できます）。タイムテーブルと組み合わせ表など、複数の資料に情報が分かれている場合は、まとめて選択すると内容を照合して読み取ります。
+        PNG・JPEG・PDFを選択してください（最大{MAX_FILES}ファイルまで同時に添付できます）。
       </p>
+      <div className="mt-3 rounded-md bg-blue-50 p-3 text-left text-xs text-blue-900">
+        <p className="font-semibold">対戦カード（チーム名）まで自動入力するには：</p>
+        <p className="mt-1">
+          タイムテーブル・リーグ組み合わせ表・トーナメント表など、大会の資料をまとめて選択してください。試合No.を手がかりに資料同士を自動で照合し、チーム名まで埋めます。
+        </p>
+        {isSupplement && (
+          <p className="mt-1 font-semibold">
+            すでに入力済みの内容は上書きされません。空欄だけが自動的に埋まります。
+          </p>
+        )}
+      </div>
 
       <div className="mt-6 flex flex-col items-center gap-3">
         <input
@@ -92,7 +104,7 @@ export function UploadStep({ errorMessage, onAnalyze }: Props) {
           disabled={selectedFiles.length === 0}
           className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
-          資料を解析する
+          {isSupplement ? "追加の資料を解析して統合する" : "資料を解析する"}
         </button>
       </div>
 

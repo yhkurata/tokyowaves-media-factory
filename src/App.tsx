@@ -221,7 +221,7 @@ function App() {
         leagueData.replaceLeagues(buildLeagueGroups(result));
       }
       if (result.matches.length > 0) {
-        timetableData.replaceMatches(buildTimetableMatches(result));
+        timetableData.mergeMatches(buildTimetableMatches(result));
       }
       const bracket = buildBracketData(result);
       if (bracket) {
@@ -272,7 +272,16 @@ function App() {
 
       <main className="mx-auto max-w-5xl px-6 py-8">
         {wizardStep === "upload" && (
-          <UploadStep errorMessage={analysisError} onAnalyze={handleAnalyze} />
+          <UploadStep
+            errorMessage={analysisError}
+            onAnalyze={handleAnalyze}
+            isSupplement={
+              tournamentHasData(tournament) ||
+              leaguesHasData(leagueData.leagues) ||
+              timetableHasData(timetableData.matches) ||
+              bracketHasData(bracketData.data)
+            }
+          />
         )}
 
         {wizardStep === "analyzing" && <AnalyzingStep />}
@@ -297,6 +306,10 @@ function App() {
             onUpdateVenueName={handleUpdateVenueName}
             onRemoveVenue={handleRemoveVenue}
             onProceedToExport={() => setWizardStep("export")}
+            onAddMoreFiles={() => {
+              setAnalysisError("");
+              setWizardStep("upload");
+            }}
           />
         )}
 

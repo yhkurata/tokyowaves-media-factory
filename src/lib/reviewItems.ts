@@ -19,6 +19,17 @@ export interface ReviewGroup {
   items: ReviewItem[];
 }
 
+// 対戦カード（チームA・B）が未入力の試合の割合。
+// 一定以上まとまって欠けている場合は、手入力ではなく「組み合わせ表等の追加アップロード」を
+// 案内する目安として使う（1〜2件程度の抜けでは案内を出さない）。
+export function teamNameGapRatio(matches: TimetableMatch[]): number {
+  if (matches.length === 0) return 0;
+  const missing = matches.filter(
+    (m) => m.teamA.trim() === "" || m.teamB.trim() === "",
+  ).length;
+  return missing / matches.length;
+}
+
 interface BuildReviewItemsParams {
   tournament: Tournament;
   leagues: LeagueGroup[];
