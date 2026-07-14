@@ -1,6 +1,6 @@
 import type { Plugin } from "vite";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { runExtraction, type ExtractRequestBody } from "./extractHandler";
+import { runExtraction, type ExtractRequestBody } from "./extractHandler.js";
 
 const MAX_BODY_BYTES = 90 * 1024 * 1024; // 90MB（base64込み・複数ファイル添付を考慮）
 
