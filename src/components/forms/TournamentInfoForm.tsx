@@ -1,4 +1,5 @@
 import type { Tournament } from "../../types/tournament";
+import { reviewFieldClass } from "../../lib/formStyles";
 
 type Props = {
   tournament: Tournament;
@@ -72,7 +73,7 @@ export function TournamentInfoForm({
                 type="date"
                 value={day.date}
                 onChange={(e) => onUpdateDayDate(day.id, e.target.value)}
-                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                className={`min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(day.date)}`}
               />
               <button
                 type="button"
@@ -94,7 +95,7 @@ export function TournamentInfoForm({
                       onUpdateVenueName(day.id, venue.id, e.target.value)
                     }
                     placeholder="会場名（例：前橋南高校）"
-                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                    className={`min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(venue.name)}`}
                   />
                   <button
                     type="button"

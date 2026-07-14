@@ -1,4 +1,5 @@
 import type { LeagueGroup } from "../../types/league";
+import { reviewFieldClass } from "../../lib/formStyles";
 
 type Props = {
   leagues: LeagueGroup[];
@@ -73,8 +74,8 @@ export function LeagueForm({
                     onChange={(e) =>
                       onUpdateTeamName(league.id, team.id, e.target.value)
                     }
-                    placeholder="チーム名"
-                    className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="チーム名（要確認）"
+                    className={`flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(team.name)}`}
                   />
                   <label className="flex shrink-0 items-center gap-1 text-xs text-gray-600">
                     <input

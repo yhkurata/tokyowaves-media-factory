@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState } from "react";
 import type { useTournamentData } from "../../state/useTournamentData";
 import type { useLeagueData } from "../../state/useLeagueData";
 import type { useTimetableData } from "../../state/useTimetableData";
@@ -9,41 +9,19 @@ import { TournamentInfoForm } from "../forms/TournamentInfoForm";
 import { LeagueForm } from "../forms/LeagueForm";
 import { TimetableForm } from "../forms/TimetableForm";
 import { BracketForm } from "../forms/BracketForm";
-import { PostImageTemplate } from "../preview/PostImageTemplate";
-import { LeagueBoardTemplate } from "../preview/LeagueBoardTemplate";
-import { TimetableTemplate } from "../preview/TimetableTemplate";
-import { TournamentTemplate } from "../preview/TournamentTemplate";
 import { AccordionSection } from "./AccordionSection";
-import { buildSections } from "../../lib/templateSections";
-import { IMAGE_WIDTH, IMAGE_HEIGHT } from "../../lib/constants";
+import { ReviewChecklist } from "./ReviewChecklist";
+import { PreviewGallery } from "./PreviewGallery";
+import { buildSections, buildExportUnits } from "../../lib/templateSections";
+import { buildReviewItems } from "../../lib/reviewItems";
 
-const PREVIEW_SCALE = 0.28;
-
-function PreviewFrame({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        width: IMAGE_WIDTH * PREVIEW_SCALE,
-        height: IMAGE_HEIGHT * PREVIEW_SCALE,
-        overflow: "hidden",
-      }}
-      className="shrink-0 border border-gray-300 shadow-sm"
-    >
-      <div
-        style={{
-          width: IMAGE_WIDTH,
-          height: IMAGE_HEIGHT,
-          transform: `scale(${PREVIEW_SCALE})`,
-          transformOrigin: "top left",
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
+type AnalysisSummary = {
+  matchCount: number;
+  missingFields: string[];
+};
 
 type Props = {
+  analysisSummary: AnalysisSummary | null;
   tournamentData: ReturnType<typeof useTournamentData>;
   leagueData: ReturnType<typeof useLeagueData>;
   timetableData: ReturnType<typeof useTimetableData>;
@@ -61,6 +39,7 @@ type Props = {
 };
 
 export function ConfirmStep({
+  analysisSummary,
   tournamentData,
   leagueData,
   timetableData,
@@ -76,29 +55,87 @@ export function ConfirmStep({
   onRemoveVenue,
   onProceedToExport,
 }: Props) {
+  const [detailedEditOpen, setDetailedEditOpen] = useState(false);
   const { tournament } = tournamentData;
-  const sections = buildSections({
+
+  const state = {
     tournament,
     leagues: leagueData.leagues,
     matches: timetableData.matches,
     bracket: bracketData.data,
+  };
+
+  const reviewGroups = buildReviewItems({
+    tournament,
+    leagues: leagueData.leagues,
+    matches: timetableData.matches,
+    bracket: bracketData.data,
+    onUpdateName: tournamentData.updateName,
+    onUpdateDayDate,
+    onUpdateVenueName,
+    onUpdateLeagueName: leagueData.updateLeagueName,
+    onUpdateTeamName: leagueData.updateTeamName,
+    onUpdateMatch: timetableData.updateMatch,
+    onUpdateRound1Team: bracketData.updateRound1Team,
   });
+  const reviewItemCount = reviewGroups.reduce(
+    (sum, group) => sum + group.items.length,
+    0,
+  );
+
+  const units = buildExportUnits(state);
+  const sections = buildSections(state);
   const sectionById = Object.fromEntries(sections.map((s) => [s.id, s]));
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">
-        セクションをスクロールして確認・修正してください。要確認の項目があるセクションは自動的に開いています。
-      </p>
+    <div className="space-y-6">
+      {analysisSummary && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-gray-800">
+          <p className="font-semibold text-blue-900">
+            AIが{analysisSummary.matchCount}試合を自動入力しました。
+          </p>
+          {analysisSummary.missingFields.length > 0 ? (
+            <p className="mt-1 text-gray-700">
+              資料から読み取れなかった項目：
+              <span className="font-semibold text-yellow-700">
+                {" "}
+                {analysisSummary.missingFields.join("・")}
+              </span>
+              　→　下の「要確認」リストだけ埋めてください。
+            </p>
+          ) : (
+            <p className="mt-1 text-gray-700">
+              主要な項目はすべて自動入力できました。プレビューに間違いがないかだけ確認してください。
+            </p>
+          )}
+        </div>
+      )}
 
-      <AccordionSection
-        label={sectionById.cover.label}
-        needsReview={sectionById.cover.needsReview}
-        hasData={sectionById.cover.hasData}
-        defaultOpen={sectionById.cover.hasData || sectionById.cover.needsReview}
+      <ReviewChecklist groups={reviewGroups} totalCount={reviewItemCount} />
+
+      <PreviewGallery
+        units={units}
+        tournament={tournament}
+        leagues={leagueData.leagues}
+        bracket={bracketData.data}
+        timetableRound={timetableData.info.round}
+      />
+
+      <details
+        open={detailedEditOpen}
+        onToggle={(e) => setDetailedEditOpen(e.currentTarget.open)}
+        className="rounded-lg border border-gray-200 bg-white"
       >
-        <div className="flex flex-wrap gap-6">
-          <div className="w-full max-w-md">
+        <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-600 hover:text-gray-900">
+          詳細編集（開催日・会場・チームの追加や削除など）
+        </summary>
+        <div className="space-y-4 border-t border-gray-100 px-4 py-4">
+          <AccordionSection
+            label={sectionById.cover.label}
+            needsReview={sectionById.cover.needsReview}
+            hasData={sectionById.cover.hasData}
+            defaultOpen={false}
+          >
             <TournamentInfoForm
               tournament={tournament}
               onUpdateName={tournamentData.updateName}
@@ -109,21 +146,14 @@ export function ConfirmStep({
               onRemoveVenue={onRemoveVenue}
               onUpdateVenueName={onUpdateVenueName}
             />
-          </div>
-          <PreviewFrame>
-            <PostImageTemplate tournament={tournament} />
-          </PreviewFrame>
-        </div>
-      </AccordionSection>
+          </AccordionSection>
 
-      <AccordionSection
-        label={sectionById.league.label}
-        needsReview={sectionById.league.needsReview}
-        hasData={sectionById.league.hasData}
-        defaultOpen={sectionById.league.hasData || sectionById.league.needsReview}
-      >
-        <div className="flex flex-wrap gap-6">
-          <div className="w-full max-w-md">
+          <AccordionSection
+            label={sectionById.league.label}
+            needsReview={sectionById.league.needsReview}
+            hasData={sectionById.league.hasData}
+            defaultOpen={false}
+          >
             <LeagueForm
               leagues={leagueData.leagues}
               onAddLeague={leagueData.addLeague}
@@ -134,23 +164,14 @@ export function ConfirmStep({
               onUpdateTeamName={leagueData.updateTeamName}
               onSetTeamIsTokyoWaves={leagueData.setTeamIsTokyoWaves}
             />
-          </div>
-          <PreviewFrame>
-            <LeagueBoardTemplate leagues={leagueData.leagues} />
-          </PreviewFrame>
-        </div>
-      </AccordionSection>
+          </AccordionSection>
 
-      <AccordionSection
-        label={sectionById.timetable.label}
-        needsReview={sectionById.timetable.needsReview}
-        hasData={sectionById.timetable.hasData}
-        defaultOpen={
-          sectionById.timetable.hasData || sectionById.timetable.needsReview
-        }
-      >
-        <div className="flex flex-wrap gap-6">
-          <div className="w-full max-w-md">
+          <AccordionSection
+            label={sectionById.timetable.label}
+            needsReview={sectionById.timetable.needsReview}
+            hasData={sectionById.timetable.hasData}
+            defaultOpen={false}
+          >
             <TimetableForm
               tournamentDays={tournament.days}
               selectedDay={selectedDay}
@@ -164,28 +185,14 @@ export function ConfirmStep({
               onRemoveMatch={timetableData.removeMatch}
               onUpdateMatch={timetableData.updateMatch}
             />
-          </div>
-          <PreviewFrame>
-            <TimetableTemplate
-              date={selectedDay?.date ?? ""}
-              venue={selectedVenue?.name ?? ""}
-              round={timetableData.info.round}
-              matches={scopedMatches}
-            />
-          </PreviewFrame>
-        </div>
-      </AccordionSection>
+          </AccordionSection>
 
-      <AccordionSection
-        label={sectionById.tournament.label}
-        needsReview={sectionById.tournament.needsReview}
-        hasData={sectionById.tournament.hasData}
-        defaultOpen={
-          sectionById.tournament.hasData || sectionById.tournament.needsReview
-        }
-      >
-        <div className="flex flex-wrap gap-6">
-          <div className="w-full max-w-md">
+          <AccordionSection
+            label={sectionById.tournament.label}
+            needsReview={sectionById.tournament.needsReview}
+            hasData={sectionById.tournament.hasData}
+            defaultOpen={false}
+          >
             <BracketForm
               data={bracketData.data}
               onUpdateRound1Team={bracketData.updateRound1Team}
@@ -193,14 +200,16 @@ export function ConfirmStep({
               onSetSemisWinner={bracketData.setSemisWinner}
               onSetFinalWinner={bracketData.setFinalWinner}
             />
-          </div>
-          <PreviewFrame>
-            <TournamentTemplate data={bracketData.data} />
-          </PreviewFrame>
+          </AccordionSection>
         </div>
-      </AccordionSection>
+      </details>
 
-      <div className="flex justify-end pt-2">
+      <div className="flex items-center justify-end gap-3 pt-2">
+        {reviewItemCount > 0 && (
+          <span className="text-xs text-yellow-700">
+            要確認が{reviewItemCount}件残っています
+          </span>
+        )}
         <button
           type="button"
           onClick={onProceedToExport}

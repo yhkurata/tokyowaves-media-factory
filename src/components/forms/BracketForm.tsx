@@ -1,5 +1,6 @@
 import type { BracketData, WinnerChoice } from "../../types/bracket";
 import { getSemisSlots, getFinalSlot, getChampion } from "../../lib/bracket";
+import { reviewFieldClass } from "../../lib/formStyles";
 
 type Props = {
   data: BracketData;
@@ -83,7 +84,7 @@ export function BracketForm({
                   onUpdateRound1Team(i, "teamA", e.target.value)
                 }
                 placeholder="チームA"
-                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                className={`min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(slot.teamA)}`}
               />
               <span className="shrink-0 text-xs text-gray-400">vs</span>
               <input
@@ -93,7 +94,7 @@ export function BracketForm({
                   onUpdateRound1Team(i, "teamB", e.target.value)
                 }
                 placeholder="チームB"
-                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                className={`min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(slot.teamB)}`}
               />
             </div>
             <WinnerRadio

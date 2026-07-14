@@ -16,6 +16,7 @@ import {
   buildTimetableInfoPatch,
   buildTimetableMatches,
   buildTournament,
+  getMissingFieldLabels,
   type ExtractionResult,
 } from "./lib/extraction";
 import type { ProjectData } from "./lib/projectFile";
@@ -59,9 +60,16 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+interface AnalysisSummary {
+  matchCount: number;
+  missingFields: string[];
+}
+
 function App() {
   const [wizardStep, setWizardStep] = useState<WizardStep>("upload");
   const [analysisError, setAnalysisError] = useState("");
+  const [analysisSummary, setAnalysisSummary] =
+    useState<AnalysisSummary | null>(null);
 
   const tournamentData = useTournamentData();
   const { tournament } = tournamentData;
@@ -132,6 +140,7 @@ function App() {
     setSelectedDayId("");
     setSelectedVenueId("");
     setAnalysisError("");
+    setAnalysisSummary(null);
     setWizardStep("confirm");
   };
 
@@ -185,6 +194,7 @@ function App() {
     if (attachments.length === 0) return;
 
     setAnalysisError("");
+    setAnalysisSummary(null);
     setWizardStep("analyzing");
 
     try {
@@ -218,6 +228,10 @@ function App() {
         bracketData.loadBracket(bracket);
       }
 
+      setAnalysisSummary({
+        matchCount: result.matches.length,
+        missingFields: getMissingFieldLabels(result),
+      });
       setWizardStep("confirm");
     } catch (err) {
       setAnalysisError(
@@ -265,6 +279,7 @@ function App() {
 
         {wizardStep === "confirm" && (
           <ConfirmStep
+            analysisSummary={analysisSummary}
             tournamentData={tournamentData}
             leagueData={leagueData}
             timetableData={timetableData}

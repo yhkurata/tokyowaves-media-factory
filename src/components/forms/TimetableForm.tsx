@@ -1,6 +1,7 @@
 import type { TournamentDay, TournamentVenue } from "../../types/tournament";
 import type { TimetableInfo, TimetableMatch } from "../../types/timetable";
 import { formatDisplayDate } from "../../lib/tournamentSchedule";
+import { reviewFieldClass } from "../../lib/formStyles";
 
 const LEAGUE_OPTIONS = ["A", "B", "C", "D"];
 
@@ -142,7 +143,7 @@ export function TimetableForm({
                     }
                     placeholder="No."
                     title="試合No."
-                    className="w-12 shrink-0 rounded-md border border-gray-300 px-1.5 py-1 text-center text-sm focus:border-blue-500 focus:outline-none"
+                    className={`w-12 shrink-0 rounded-md border px-1.5 py-1 text-center text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(match.no)}`}
                   />
                   <input
                     type="text"
@@ -151,7 +152,7 @@ export function TimetableForm({
                       onUpdateMatch(match.id, { time: e.target.value })
                     }
                     placeholder="時間 例:09:12"
-                    className="w-20 shrink-0 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                    className={`w-20 shrink-0 rounded-md border px-2 py-1 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(match.time)}`}
                   />
                   <select
                     value={match.league}
@@ -193,8 +194,8 @@ export function TimetableForm({
                     onChange={(e) =>
                       onUpdateMatch(match.id, { teamA: e.target.value })
                     }
-                    placeholder="チームA"
-                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="チームA（要確認）"
+                    className={`min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(match.teamA)}`}
                   />
                   <span className="shrink-0 text-xs text-gray-400">vs</span>
                   <input
@@ -203,8 +204,8 @@ export function TimetableForm({
                     onChange={(e) =>
                       onUpdateMatch(match.id, { teamB: e.target.value })
                     }
-                    placeholder="チームB"
-                    className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="チームB（要確認）"
+                    className={`min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none ${reviewFieldClass(match.teamB)}`}
                   />
                 </div>
               </div>
