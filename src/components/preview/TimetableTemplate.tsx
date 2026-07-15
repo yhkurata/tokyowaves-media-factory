@@ -9,7 +9,9 @@ import {
   NAVY_TOP,
   NAVY_BOTTOM,
   YELLOW_LIGHT,
+  YELLOW_DARK,
   YELLOW_HIGHLIGHT,
+  TEXT_ON_YELLOW,
   LAYOUT,
   TYPOGRAPHY,
   SHADOWS,
@@ -350,8 +352,8 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
             <br />
             黄色は
             <span
-              className="mx-1 rounded px-2 py-0.5 font-bold text-gray-900"
-              style={{ background: YELLOW_HIGHLIGHT }}
+              className="mx-1 rounded px-2 py-0.5 font-bold"
+              style={{ background: YELLOW_DARK, color: TEXT_ON_YELLOW }}
             >
               東京WAVES
             </span>
