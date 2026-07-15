@@ -19,6 +19,30 @@ export interface ExtractRequestBody {
 const DEFAULT_MODEL = "claude-opus-4-8";
 const MAX_FILES = 8;
 
+// Anthropic SDKのエラーは、生のJSONレスポンス本文がそのまま .message に
+// 入ってくるため（例：'400 {"type":"error","error":{"type":"invalid_request_error",
+// "message":"Your credit balance is too low..."}}'）、そのまま画面に出すと
+// ユーザーには意味が伝わらない。よくあるケースだけ分かりやすい日本語に変換する。
+function friendlyAnthropicErrorMessage(err: unknown): string {
+  if (err instanceof Anthropic.APIError) {
+    if (err.status === 400 && /credit balance is too low/i.test(err.message)) {
+      return "Anthropic APIのクレジット残高が不足しています。console.anthropic.com の「Plans & Billing」からクレジットを追加してください（このアプリのコードの問題ではありません）。";
+    }
+    if (err.status === 401) {
+      return "Anthropic APIキーが無効です。環境変数 ANTHROPIC_API_KEY を確認してください。";
+    }
+    if (err.status === 429) {
+      return "Anthropic APIのリクエスト数上限に達しました。しばらく待ってから再度お試しください。";
+    }
+    if (err.status === 529) {
+      return "Anthropic APIが混雑しています。しばらく待ってから再度お試しください。";
+    }
+  }
+  return err instanceof Error
+    ? `解析中にエラーが発生しました: ${err.message}`
+    : "解析中に不明なエラーが発生しました。";
+}
+
 function toContentBlock(file: ExtractRequestFile) {
   return file.mediaType === "application/pdf"
     ? {
@@ -58,38 +82,43 @@ export async function runExtraction(
       ? `${body.files.length}件の資料から大会情報を抽出し、指定されたJSON形式で返してください。資料間で共通する試合No.があれば、内容を照合して1つの結果に統合してください。`
       : "この資料から大会情報を抽出し、指定されたJSON形式で返してください。";
 
-  // 思考トークンを含めると max_tokens が大きく、10分を超えうるため
-  // 非ストリーミングはSDKに拒否される。ストリーミングで受けて最終結果だけ使う。
-  const stream = client.messages.stream({
-    model,
-    // 試合数の多い大会（複数日・複数会場）でもJSON出力が途中で切れないよう、
-    // また複雑な勝ち上がりトーナメント表の対戦カードを推論する思考トークン分も
-    // 十分な余裕を持たせている。
-    max_tokens: 32000,
-    // 「試合No.15はトーナメント表の位置的にどのチームか」のような多段階の
-    // 空間的推論が必要なため、thinkingなしだと安全側に倒れてnullを返しがちになる。
-    thinking: { type: "adaptive" },
-    system: EXTRACTION_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          ...body.files.map(toContentBlock),
-          {
-            type: "text",
-            text: instructionText,
-          },
-        ],
+  let response;
+  try {
+    // 思考トークンを含めると max_tokens が大きく、10分を超えうるため
+    // 非ストリーミングはSDKに拒否される。ストリーミングで受けて最終結果だけ使う。
+    const stream = client.messages.stream({
+      model,
+      // 試合数の多い大会（複数日・複数会場）でもJSON出力が途中で切れないよう、
+      // また複雑な勝ち上がりトーナメント表の対戦カードを推論する思考トークン分も
+      // 十分な余裕を持たせている。
+      max_tokens: 32000,
+      // 「試合No.15はトーナメント表の位置的にどのチームか」のような多段階の
+      // 空間的推論が必要なため、thinkingなしだと安全側に倒れてnullを返しがちになる。
+      thinking: { type: "adaptive" },
+      system: EXTRACTION_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...body.files.map(toContentBlock),
+            {
+              type: "text",
+              text: instructionText,
+            },
+          ],
+        },
+      ],
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: EXTRACTION_JSON_SCHEMA,
+        },
       },
-    ],
-    output_config: {
-      format: {
-        type: "json_schema",
-        schema: EXTRACTION_JSON_SCHEMA,
-      },
-    },
-  });
-  const response = await stream.finalMessage();
+    });
+    response = await stream.finalMessage();
+  } catch (err) {
+    throw new Error(friendlyAnthropicErrorMessage(err));
+  }
 
   if (response.stop_reason === "max_tokens") {
     throw new Error(
