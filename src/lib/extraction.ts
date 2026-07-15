@@ -31,12 +31,24 @@ export interface ExtractionResult {
   bracket: ExtractedBracketSlot[];
 }
 
+// 資料によって「東京WAVES」の表記ゆれ（例："東京WAVS" のような1文字抜け、
+// 全角/半角、スペースの有無）があるため、緩めに判定する。
+// 「東京」または「TOKYO」と「WAV」（WAVE/WAVES/WAVS等に共通）が両方含まれていれば
+// 自チームとみなす。
 function isTokyoWaves(name: string) {
+  const normalized = name.replace(/\s+/g, "").toUpperCase();
   return (
-    name.includes("東京WAVES") ||
-    name.includes("TokyoWAVES") ||
-    name.includes("Tokyo WAVES")
+    (normalized.includes("東京") || normalized.includes("TOKYO")) &&
+    normalized.includes("WAV")
   );
+}
+
+const TOKYO_WAVES_CANONICAL_NAME = "東京WAVES";
+
+// 自チームと判定した場合は、資料の表記ゆれ（例："東京WAVS"）に関わらず
+// 正式名称で表示する。他チームの名前は資料の表記をそのまま尊重する。
+function normalizeTeamName(name: string) {
+  return isTokyoWaves(name) ? TOKYO_WAVES_CANONICAL_NAME : name;
 }
 
 function createId() {
@@ -89,7 +101,7 @@ export function buildLeagueGroups(result: ExtractionResult): LeagueGroup[] {
     teams: league.teams.map(
       (name): Team => ({
         id: createId(),
-        name,
+        name: normalizeTeamName(name),
         isTokyoWaves: isTokyoWaves(name),
       }),
     ),
@@ -106,8 +118,8 @@ export function buildTimetableMatches(
     time: match.time ?? "",
     league: match.league ?? "A",
     no: match.no ?? String(index + 1),
-    teamA: match.teamA ?? "",
-    teamB: match.teamB ?? "",
+    teamA: normalizeTeamName(match.teamA ?? ""),
+    teamB: normalizeTeamName(match.teamB ?? ""),
     isTokyoWaves:
       isTokyoWaves(match.teamA ?? "") || isTokyoWaves(match.teamB ?? ""),
   }));
@@ -120,8 +132,8 @@ export function buildBracketData(result: ExtractionResult): BracketData | null {
   if (result.bracket.length !== 4) return null;
   return {
     round1: result.bracket.map((slot) => ({
-      teamA: slot.teamA ?? "",
-      teamB: slot.teamB ?? "",
+      teamA: normalizeTeamName(slot.teamA ?? ""),
+      teamB: normalizeTeamName(slot.teamB ?? ""),
     })),
     round1Winners: [null, null, null, null],
     semisWinners: [null, null],

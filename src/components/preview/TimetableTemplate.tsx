@@ -21,6 +21,9 @@ import { fitNameFontSize } from "./textFit";
 
 const LEAGUE_LABELS = ["A", "B", "C", "D"];
 const TEAM_NAME_MAX_WIDTH = 260;
+// 試合No.は "B13" のように区分記号＋2桁になることがあるため、丸バッジが
+// 収まりきるよう円ではなくピル型（幅可変）にし、列幅にも少し余裕を持たせる。
+const NO_COLUMN_WIDTH = 90;
 
 // タイムテーブル部分（日程バー・テーブル・注記）だけの左右余白。
 // ヘッダー・フッターは LAYOUT.outerMargin のまま変更しない。
@@ -228,7 +231,10 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
             <div className="relative shrink-0 text-center" style={{ width: 95 }}>
               リーグ
             </div>
-            <div className="relative shrink-0 text-center" style={{ width: 74 }}>
+            <div
+              className="relative shrink-0 text-center"
+              style={{ width: NO_COLUMN_WIDTH }}
+            >
               No.
             </div>
             <div className="relative flex-1 text-center">対戦カード</div>
@@ -266,15 +272,20 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                     {match.league}
                   </span>
                 </div>
-                <div className="flex shrink-0 justify-center" style={{ width: 74 }}>
+                <div
+                  className="flex shrink-0 justify-center"
+                  style={{ width: NO_COLUMN_WIDTH }}
+                >
                   <span
                     className="flex items-center justify-center rounded-full font-black"
                     style={{
-                      width: badgeSize,
+                      minWidth: badgeSize,
                       height: badgeSize,
+                      padding: `0 ${6 * rowScale}px`,
                       border: `${Math.max(1, 2 * rowScale)}px solid ${NAVY_TOP}`,
                       color: NAVY_TOP,
                       fontSize: 17 * rowScale,
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {match.no}
