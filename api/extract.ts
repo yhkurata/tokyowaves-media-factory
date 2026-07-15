@@ -10,7 +10,7 @@ import {
 // コード変更なしでどちらの環境でも動く。実際の解析ロジックは
 // server/extractHandler.ts の runExtraction に共通化してある。
 
-const MAX_FILES = 5;
+const MAX_FILES = 8;
 
 function isExtractRequestFile(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;

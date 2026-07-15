@@ -17,7 +17,7 @@ export interface ExtractRequestBody {
 }
 
 const DEFAULT_MODEL = "claude-opus-4-8";
-const MAX_FILES = 5;
+const MAX_FILES = 8;
 
 function toContentBlock(file: ExtractRequestFile) {
   return file.mediaType === "application/pdf"
@@ -58,11 +58,17 @@ export async function runExtraction(
       ? `${body.files.length}件の資料から大会情報を抽出し、指定されたJSON形式で返してください。資料間で共通する試合No.があれば、内容を照合して1つの結果に統合してください。`
       : "この資料から大会情報を抽出し、指定されたJSON形式で返してください。";
 
-  const response = await client.messages.create({
+  // 思考トークンを含めると max_tokens が大きく、10分を超えうるため
+  // 非ストリーミングはSDKに拒否される。ストリーミングで受けて最終結果だけ使う。
+  const stream = client.messages.stream({
     model,
     // 試合数の多い大会（複数日・複数会場）でもJSON出力が途中で切れないよう、
-    // 十分な余裕を持たせている（非ストリーミングで安全な上限の目安）。
-    max_tokens: 16000,
+    // また複雑な勝ち上がりトーナメント表の対戦カードを推論する思考トークン分も
+    // 十分な余裕を持たせている。
+    max_tokens: 32000,
+    // 「試合No.15はトーナメント表の位置的にどのチームか」のような多段階の
+    // 空間的推論が必要なため、thinkingなしだと安全側に倒れてnullを返しがちになる。
+    thinking: { type: "adaptive" },
     system: EXTRACTION_SYSTEM_PROMPT,
     messages: [
       {
@@ -83,6 +89,7 @@ export async function runExtraction(
       },
     },
   });
+  const response = await stream.finalMessage();
 
   if (response.stop_reason === "max_tokens") {
     throw new Error(

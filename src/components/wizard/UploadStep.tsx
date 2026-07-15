@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 export type SupportedMediaType = "image/png" | "image/jpeg" | "application/pdf";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
-const MAX_FILES = 5;
+const MAX_FILES = 8;
 
 function mediaTypeForFile(file: File): SupportedMediaType | null {
   if (file.type === "image/png") return "image/png";
