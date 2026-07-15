@@ -108,21 +108,6 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
           </h1>
         </div>
 
-        {/* 上部バナー */}
-        <div
-          className="relative z-10 mb-3 mt-0.5"
-          style={{ marginLeft: LAYOUT.outerMargin, marginRight: LAYOUT.outerMargin }}
-        >
-          <RibbonBanner padding="17px 64px">
-            <span
-              style={{ color: TEXT_ON_YELLOW, fontSize: TYPOGRAPHY.bannerText }}
-              className="font-black"
-            >
-              🏆 各リーグ上位2チームが代表決定戦へ！
-            </span>
-          </RibbonBanner>
-        </div>
-
         {/* リーグカード一覧 */}
         <div
           className="relative z-10 flex flex-1 flex-col justify-center"
@@ -259,26 +244,18 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
             style={{ marginLeft: LAYOUT.outerMargin, marginRight: LAYOUT.outerMargin }}
           >
             <RibbonBanner padding="17px 56px">
-              <div>
-                <div
-                  style={{
-                    color: TEXT_ON_YELLOW,
-                    fontSize: TYPOGRAPHY.bannerHighlight,
-                  }}
-                  className="font-black"
-                >
-                  ⭐ 東京WAVESは
-                  <span style={{ color: "#1d4fb2" }}>
-                    {tokyoWaves.leagueName}
-                  </span>
-                  {tokyoWaves.position}番！
-                </div>
-                <div
-                  style={{ fontSize: TYPOGRAPHY.bannerSub }}
-                  className="mt-1.5 font-bold text-blue-900"
-                >
-                  ➡ 予選リーグ上位2チームが代表決定戦へ進出します
-                </div>
+              <div
+                style={{
+                  color: TEXT_ON_YELLOW,
+                  fontSize: TYPOGRAPHY.bannerHighlight,
+                }}
+                className="font-black"
+              >
+                ⭐ 東京WAVESは
+                <span style={{ color: "#1d4fb2" }}>
+                  {tokyoWaves.leagueName}
+                </span>
+                {tokyoWaves.position}番！
               </div>
             </RibbonBanner>
           </div>

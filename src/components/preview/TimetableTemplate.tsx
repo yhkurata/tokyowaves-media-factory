@@ -22,6 +22,24 @@ const LEAGUE_LABELS = ["A", "B", "C", "D"];
 // ヘッダー・フッターは LAYOUT.outerMargin のまま変更しない。
 const CONTENT_MARGIN = 52;
 
+// 試合行1件分の高さ（padding "10px 0" 基準、実測値）と、テーブル・注記に使える
+// 縦幅の予算（実測値から少し余裕を持たせた値）。試合数が多いフォント固定のままだと
+// テーブル＋注記がこの予算を超え、フッターや下側の行がキャンバス外に押し出されて
+// 見切れてしまうため、はみ出す場合だけ行の高さ・文字サイズを縮小して必ず収める。
+const BASE_ROW_HEIGHT = 55;
+const FIXED_OVERHEAD = 150; // テーブル見出し行 + 注記とのgap + 注記の高さ（試合数に依存しない）
+const AVAILABLE_BUDGET = 980;
+const MIN_ROW_SCALE = 0.55;
+
+function rowScaleFor(matchCount: number): number {
+  if (matchCount <= 0) return 1;
+  const idealTotal = BASE_ROW_HEIGHT * matchCount + FIXED_OVERHEAD;
+  if (idealTotal <= AVAILABLE_BUDGET) return 1;
+  const availableForRows = AVAILABLE_BUDGET - FIXED_OVERHEAD;
+  const scale = availableForRows / (BASE_ROW_HEIGHT * matchCount);
+  return Math.max(MIN_ROW_SCALE, Math.min(1, scale));
+}
+
 function leagueColorFor(label: string) {
   const index = LEAGUE_LABELS.indexOf(label);
   return getLeagueColor(index === -1 ? 0 : index);
@@ -36,6 +54,7 @@ type Props = {
 
 export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
   function TimetableTemplate({ date, venue, round, matches }, ref) {
+    const rowScale = rowScaleFor(matches.length);
     return (
       <div
         ref={ref}
@@ -203,18 +222,19 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
 
           {matches.map((match) => {
             const color = leagueColorFor(match.league);
+            const badgeSize = 34 * rowScale;
             return (
               <div
                 key={match.id}
                 className="flex items-center border-b border-gray-100 last:border-b-0"
                 style={{
-                  padding: "10px 0",
+                  padding: `${10 * rowScale}px 0`,
                   background: match.isTokyoWaves ? YELLOW_HIGHLIGHT : undefined,
                 }}
               >
                 <div
                   className="shrink-0 truncate px-1 text-center font-black text-gray-900"
-                  style={{ width: 117, fontSize: 22 }}
+                  style={{ width: 117, fontSize: 22 * rowScale }}
                 >
                   {match.time || "--:--"}
                 </div>
@@ -222,11 +242,11 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                   <span
                     className="flex items-center justify-center font-black text-white"
                     style={{
-                      width: 42,
-                      height: 34,
+                      width: 42 * rowScale,
+                      height: badgeSize,
                       borderRadius: LAYOUT.tagRadius,
                       background: color.from,
-                      fontSize: 19,
+                      fontSize: 19 * rowScale,
                     }}
                   >
                     {match.league}
@@ -236,11 +256,11 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                   <span
                     className="flex items-center justify-center rounded-full font-black"
                     style={{
-                      width: 34,
-                      height: 34,
-                      border: `2px solid ${NAVY_TOP}`,
+                      width: badgeSize,
+                      height: badgeSize,
+                      border: `${Math.max(1, 2 * rowScale)}px solid ${NAVY_TOP}`,
                       color: NAVY_TOP,
-                      fontSize: 17,
+                      fontSize: 17 * rowScale,
                     }}
                   >
                     {match.no}
@@ -248,7 +268,7 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                 </div>
                 <div
                   className="flex min-w-0 flex-1 items-center justify-center gap-3 font-bold text-gray-800"
-                  style={{ fontSize: 21 }}
+                  style={{ fontSize: 21 * rowScale }}
                 >
                   <span
                     className={`truncate ${match.isTokyoWaves && match.teamB === "東京WAVES" ? "font-black" : ""}`}
@@ -258,7 +278,7 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                   </span>
                   <span
                     className="shrink-0 font-bold text-gray-600"
-                    style={{ fontSize: 19 }}
+                    style={{ fontSize: 19 * rowScale }}
                   >
                     vs
                   </span>
@@ -269,7 +289,10 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                     {match.teamB || "チームB未入力"}
                   </span>
                   {match.isTokyoWaves && (
-                    <span className="shrink-0 text-yellow-500" style={{ fontSize: 21 }}>
+                    <span
+                      className="shrink-0 text-yellow-500"
+                      style={{ fontSize: 21 * rowScale }}
+                    >
                       ★
                     </span>
                   )}
