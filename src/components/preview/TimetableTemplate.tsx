@@ -15,8 +15,10 @@ import {
   SHADOWS,
   getLeagueColor,
 } from "./theme";
+import { fitNameFontSize } from "./textFit";
 
 const LEAGUE_LABELS = ["A", "B", "C", "D"];
+const TEAM_NAME_MAX_WIDTH = 260;
 
 // タイムテーブル部分（日程バー・テーブル・注記）だけの左右余白。
 // ヘッダー・フッターは LAYOUT.outerMargin のまま変更しない。
@@ -268,11 +270,18 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                 </div>
                 <div
                   className="flex min-w-0 flex-1 items-center justify-center gap-3 font-bold text-gray-800"
-                  style={{ fontSize: 21 * rowScale }}
                 >
                   <span
                     className={`truncate ${match.isTokyoWaves && match.teamB === "東京WAVES" ? "font-black" : ""}`}
-                    style={{ maxWidth: 260 }}
+                    style={{
+                      maxWidth: TEAM_NAME_MAX_WIDTH,
+                      fontSize: fitNameFontSize(
+                        match.teamA || "チームA未入力",
+                        21 * rowScale,
+                        TEAM_NAME_MAX_WIDTH,
+                        12 * rowScale,
+                      ),
+                    }}
                   >
                     {match.teamA || "チームA未入力"}
                   </span>
@@ -284,7 +293,15 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
                   </span>
                   <span
                     className={`truncate ${match.isTokyoWaves && match.teamA === "東京WAVES" ? "font-black" : ""}`}
-                    style={{ maxWidth: 260 }}
+                    style={{
+                      maxWidth: TEAM_NAME_MAX_WIDTH,
+                      fontSize: fitNameFontSize(
+                        match.teamB || "チームB未入力",
+                        21 * rowScale,
+                        TEAM_NAME_MAX_WIDTH,
+                        12 * rowScale,
+                      ),
+                    }}
                   >
                     {match.teamB || "チームB未入力"}
                   </span>

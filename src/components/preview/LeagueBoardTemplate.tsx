@@ -16,10 +16,18 @@ import {
   SHADOWS,
   getLeagueColor,
 } from "./theme";
+import { fitNameFontSize } from "./textFit";
 
 type Props = {
   leagues: LeagueGroup[];
 };
+
+// チーム名に使える横幅を、カード幅（1カラム/2カラムで異なる）・左右padding・
+// 順位バッジ・東京WAVESの★アイコン（表示時のみ）から逆算する。
+const CARD_SINGLE_WIDTH = 527;
+const CARD_PADDING_X = 64; // px-8 の左右合計
+const BADGE_GAP = 16; // gap-4
+const STAR_WIDTH = 27 + 16; // ★アイコンの文字幅＋gap-4
 
 function chunkPairs<T>(items: T[]): T[][] {
   const pairs: T[][] = [];
@@ -126,6 +134,10 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
               {pair.map((league, i) => {
                 const index = rowIndex * 2 + i;
                 const color = getLeagueColor(index);
+                const cardWidth =
+                  pair.length === 1
+                    ? CARD_SINGLE_WIDTH
+                    : (IMAGE_WIDTH - LAYOUT.outerMargin * 2 - LAYOUT.cardGap) / 2;
                 return (
                   <div
                     key={league.id}
@@ -221,7 +233,18 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
                               {teamIndex + 1}
                             </span>
                             <span
-                              style={{ fontSize: TYPOGRAPHY.bodyLarge }}
+                              style={{
+                                fontSize: fitNameFontSize(
+                                  team.name || "チーム名未入力",
+                                  TYPOGRAPHY.bodyLarge,
+                                  cardWidth -
+                                    CARD_PADDING_X -
+                                    LAYOUT.badgeSize -
+                                    BADGE_GAP -
+                                    (team.isTokyoWaves ? STAR_WIDTH : 0),
+                                  16,
+                                ),
+                              }}
                               className="truncate font-bold text-gray-800"
                             >
                               {team.name || "チーム名未入力"}
