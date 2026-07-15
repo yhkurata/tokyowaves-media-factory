@@ -30,8 +30,15 @@ const CONTENT_MARGIN = 52;
 // 見切れてしまうため、はみ出す場合だけ行の高さ・文字サイズを縮小して必ず収める。
 const BASE_ROW_HEIGHT = 55;
 const FIXED_OVERHEAD = 150; // テーブル見出し行 + 注記とのgap + 注記の高さ（試合数に依存しない）
-const AVAILABLE_BUDGET = 980;
-const MIN_ROW_SCALE = 0.55;
+// 日程・会場バーとテーブルの間に必ず残す最小の余白。中央配置の余白がこれより
+// 小さくなる試合数の場合は、行の高さをさらに縮小してこの余白を確保する
+// （そうしないと、中央配置の詰め量が日程バー側に食い込んで重なって見える）。
+const MIN_TOP_GAP = 28;
+// 中央配置に使える縦幅（日程・会場バー〜フッターの実測値）。この予算から
+// MIN_TOP_GAPを両側ぶん差し引いた残りに、行の高さ・文字サイズを収める。
+const MIDDLE_BOX_HEIGHT = 983;
+const AVAILABLE_BUDGET = MIDDLE_BOX_HEIGHT - MIN_TOP_GAP * 2;
+const MIN_ROW_SCALE = 0.4;
 
 function rowScaleFor(matchCount: number): number {
   if (matchCount <= 0) return 1;
@@ -167,12 +174,10 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
           </span>
         </div>
 
-        {/* タイムテーブル＋注記（試合数が少ない場合は縦中央に配置）
-            marginTopで日時バーとの距離を詰める（中央配置ロジック自体は変更しない） */}
-        <div
-          className="relative z-10 flex flex-1 flex-col justify-center"
-          style={{ marginTop: -26 }}
-        >
+        {/* タイムテーブル＋注記（試合数が少ない場合は縦中央に配置。
+            rowScaleFor が MIN_TOP_GAP 分の余白を常に確保するため、
+            試合数が多い場合でも日程・会場バーと重ならない） */}
+        <div className="relative z-10 flex flex-1 flex-col justify-center">
         <div
           className="relative"
           style={{ marginLeft: CONTENT_MARGIN, marginRight: CONTENT_MARGIN }}
