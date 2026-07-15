@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { useTournamentData } from "../../state/useTournamentData";
 import type { useLeagueData } from "../../state/useLeagueData";
 import type { useTimetableData } from "../../state/useTimetableData";
@@ -10,7 +10,7 @@ import { LeagueForm } from "../forms/LeagueForm";
 import { TimetableForm } from "../forms/TimetableForm";
 import { BracketForm } from "../forms/BracketForm";
 import { AccordionSection } from "./AccordionSection";
-import { ReviewChecklist } from "./ReviewChecklist";
+import { ReviewChecklist, type ReviewChecklistHandle } from "./ReviewChecklist";
 import { PreviewGallery } from "./PreviewGallery";
 import { buildSections, buildExportUnits } from "../../lib/templateSections";
 import { buildReviewItems, teamNameGapRatio } from "../../lib/reviewItems";
@@ -60,6 +60,7 @@ export function ConfirmStep({
   onAddMoreFiles,
 }: Props) {
   const [detailedEditOpen, setDetailedEditOpen] = useState(false);
+  const reviewChecklistRef = useRef<ReviewChecklistHandle>(null);
   const { tournament } = tournamentData;
 
   const state = {
@@ -82,8 +83,8 @@ export function ConfirmStep({
     onUpdateMatch: timetableData.updateMatch,
     onUpdateRound1Team: bracketData.updateRound1Team,
   });
-  const reviewItemCount = reviewGroups.reduce(
-    (sum, group) => sum + group.items.length,
+  const emptyItemCount = reviewGroups.reduce(
+    (sum, group) => sum + group.items.filter((item) => item.isEmpty).length,
     0,
   );
 
@@ -135,7 +136,7 @@ export function ConfirmStep({
         </div>
       )}
 
-      <ReviewChecklist groups={reviewGroups} totalCount={reviewItemCount} />
+      <ReviewChecklist ref={reviewChecklistRef} groups={reviewGroups} />
 
       <PreviewGallery
         units={units}
@@ -229,17 +230,20 @@ export function ConfirmStep({
       </details>
 
       <div className="flex items-center justify-end gap-3 pt-2">
-        {reviewItemCount > 0 && (
+        {emptyItemCount > 0 && (
           <span className="text-xs text-yellow-700">
-            要確認が{reviewItemCount}件残っています
+            要確認が{emptyItemCount}件残っています
           </span>
         )}
         <button
           type="button"
-          onClick={onProceedToExport}
+          onClick={() => {
+            reviewChecklistRef.current?.save();
+            onProceedToExport();
+          }}
           className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
         >
-          ④ PNG出力へ進む
+          ④ 保存してPNG出力へ進む
         </button>
       </div>
     </div>
