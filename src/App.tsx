@@ -10,6 +10,10 @@ import { ConfirmStep } from "./components/wizard/ConfirmStep";
 import { ExportStep } from "./components/wizard/ExportStep";
 import { ProjectBar } from "./components/wizard/ProjectBar";
 import { RestorePrompt } from "./components/wizard/RestorePrompt";
+import { useStickerData } from "./state/useStickerData";
+import { StickerProjectBar } from "./components/sticker/StickerProjectBar";
+import { StickerProductionScreen } from "./components/sticker/StickerProductionScreen";
+import { CharacterSettingsScreen } from "./components/sticker/CharacterSettingsScreen";
 import {
   buildBracketData,
   buildLeagueGroups,
@@ -30,6 +34,14 @@ import {
 import type { Theme } from "./components/preview/theme";
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
+
+type AppMode = "tournament" | "sticker" | "character-settings";
+
+const MODE_TABS: { id: AppMode; label: string }[] = [
+  { id: "tournament", label: "大会画像作成" },
+  { id: "sticker", label: "スタンプ制作" },
+  { id: "character-settings", label: "キャラクター設定" },
+];
 
 function snapshotHasAnyData(data: ProjectData): boolean {
   return (
@@ -67,6 +79,9 @@ interface AnalysisSummary {
 }
 
 function App() {
+  const [mode, setMode] = useState<AppMode>("tournament");
+  const stickerData = useStickerData();
+
   const [wizardStep, setWizardStep] = useState<WizardStep>("upload");
   const [analysisError, setAnalysisError] = useState("");
   const [analysisSummary, setAnalysisSummary] =
@@ -256,76 +271,124 @@ function App() {
         <h1 className="text-xl font-bold text-gray-900">
           TokyoWAVES Media Factory
         </h1>
-        <ProjectBar
-          snapshot={{
-            tournament,
-            leagues: leagueData.leagues,
-            timetableInfo: timetableData.info,
-            matches: timetableData.matches,
-            bracket: bracketData.data,
-          }}
-          onLoad={handleLoadProject}
-        />
+        {mode === "tournament" ? (
+          <ProjectBar
+            snapshot={{
+              tournament,
+              leagues: leagueData.leagues,
+              timetableInfo: timetableData.info,
+              matches: timetableData.matches,
+              bracket: bracketData.data,
+            }}
+            onLoad={handleLoadProject}
+          />
+        ) : (
+          <StickerProjectBar
+            snapshot={{
+              characterSettings: stickerData.data.characterSettings,
+              library: stickerData.data.library,
+              batches: stickerData.data.batches,
+              candidates: stickerData.data.candidates,
+            }}
+            onLoad={stickerData.loadProject}
+          />
+        )}
       </header>
 
-      <div className="mx-auto max-w-5xl px-6 pt-6">
-        <StepIndicator current={wizardStep} />
-      </div>
+      <nav className="border-b border-gray-200 bg-white px-6">
+        <div className="mx-auto flex max-w-5xl gap-1">
+          {MODE_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMode(tab.id)}
+              className={`border-b-2 px-4 py-3 text-sm font-semibold ${
+                mode === tab.id
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
-        {wizardStep === "upload" && (
-          <UploadStep
-            errorMessage={analysisError}
-            onAnalyze={handleAnalyze}
-            isSupplement={
-              tournamentHasData(tournament) ||
-              leaguesHasData(leagueData.leagues) ||
-              timetableHasData(timetableData.matches) ||
-              bracketHasData(bracketData.data)
-            }
-          />
+      {mode === "tournament" && (
+        <div className="mx-auto max-w-5xl px-6 pt-6">
+          <StepIndicator current={wizardStep} />
+        </div>
+      )}
+
+      <main className={mode === "tournament" ? "mx-auto max-w-5xl px-6 py-8" : ""}>
+        {mode === "tournament" && (
+          <>
+            {wizardStep === "upload" && (
+              <UploadStep
+                errorMessage={analysisError}
+                onAnalyze={handleAnalyze}
+                isSupplement={
+                  tournamentHasData(tournament) ||
+                  leaguesHasData(leagueData.leagues) ||
+                  timetableHasData(timetableData.matches) ||
+                  bracketHasData(bracketData.data)
+                }
+              />
+            )}
+
+            {wizardStep === "analyzing" && <AnalyzingStep />}
+
+            {wizardStep === "confirm" && (
+              <ConfirmStep
+                analysisSummary={analysisSummary}
+                tournamentData={tournamentData}
+                leagueData={leagueData}
+                timetableData={timetableData}
+                bracketData={bracketData}
+                selectedDay={selectedDay}
+                selectedVenue={selectedVenue}
+                onSelectDay={(dayId) => {
+                  setSelectedDayId(dayId);
+                  setSelectedVenueId("");
+                }}
+                onSelectVenue={setSelectedVenueId}
+                scopedMatches={scopedMatches}
+                onUpdateDayDate={handleUpdateDayDate}
+                onRemoveDay={handleRemoveDay}
+                onUpdateVenueName={handleUpdateVenueName}
+                onRemoveVenue={handleRemoveVenue}
+                onProceedToExport={() => setWizardStep("export")}
+                onAddMoreFiles={() => {
+                  setAnalysisError("");
+                  setWizardStep("upload");
+                }}
+                theme={theme}
+                onThemeChange={setTheme}
+              />
+            )}
+
+            {wizardStep === "export" && (
+              <ExportStep
+                tournament={tournament}
+                leagues={leagueData.leagues}
+                matches={timetableData.matches}
+                bracket={bracketData.data}
+                timetableRound={timetableData.info.round}
+                theme={theme}
+                onBackToConfirm={() => setWizardStep("confirm")}
+              />
+            )}
+          </>
         )}
 
-        {wizardStep === "analyzing" && <AnalyzingStep />}
-
-        {wizardStep === "confirm" && (
-          <ConfirmStep
-            analysisSummary={analysisSummary}
-            tournamentData={tournamentData}
-            leagueData={leagueData}
-            timetableData={timetableData}
-            bracketData={bracketData}
-            selectedDay={selectedDay}
-            selectedVenue={selectedVenue}
-            onSelectDay={(dayId) => {
-              setSelectedDayId(dayId);
-              setSelectedVenueId("");
-            }}
-            onSelectVenue={setSelectedVenueId}
-            scopedMatches={scopedMatches}
-            onUpdateDayDate={handleUpdateDayDate}
-            onRemoveDay={handleRemoveDay}
-            onUpdateVenueName={handleUpdateVenueName}
-            onRemoveVenue={handleRemoveVenue}
-            onProceedToExport={() => setWizardStep("export")}
-            onAddMoreFiles={() => {
-              setAnalysisError("");
-              setWizardStep("upload");
-            }}
-            theme={theme}
-            onThemeChange={setTheme}
-          />
+        {mode === "sticker" && (
+          <StickerProductionScreen stickerData={stickerData} />
         )}
 
-        {wizardStep === "export" && (
-          <ExportStep
-            tournament={tournament}
-            leagues={leagueData.leagues}
-            matches={timetableData.matches}
-            bracket={bracketData.data}
-            timetableRound={timetableData.info.round}
-            theme={theme}
-            onBackToConfirm={() => setWizardStep("confirm")}
+        {mode === "character-settings" && (
+          <CharacterSettingsScreen
+            settings={stickerData.data.characterSettings}
+            onUpdate={stickerData.updateCharacterSettings}
           />
         )}
       </main>
