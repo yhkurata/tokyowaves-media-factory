@@ -27,6 +27,7 @@ import {
   timetableHasData,
   bracketHasData,
 } from "./lib/templateSections";
+import type { Theme } from "./components/preview/theme";
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 
@@ -89,6 +90,7 @@ function App() {
 
   const [selectedDayId, setSelectedDayId] = useState("");
   const [selectedVenueId, setSelectedVenueId] = useState("");
+  const [theme, setTheme] = useState<Theme>("standard");
 
   const selectedDay =
     tournament.days.find((d) => d.id === selectedDayId) ?? tournament.days[0];
@@ -310,6 +312,8 @@ function App() {
               setAnalysisError("");
               setWizardStep("upload");
             }}
+            theme={theme}
+            onThemeChange={setTheme}
           />
         )}
 
@@ -320,6 +324,7 @@ function App() {
             matches={timetableData.matches}
             bracket={bracketData.data}
             timetableRound={timetableData.info.round}
+            theme={theme}
             onBackToConfirm={() => setWizardStep("confirm")}
           />
         )}

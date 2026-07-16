@@ -7,19 +7,22 @@ import { BookmarkBadge } from "../decorative/BookmarkBadge";
 import { WaterPoloBallIcon } from "../decorative/WaterPoloBallIcon";
 import { OceanBackground } from "../decorative/OceanBackground";
 import {
-  NAVY_TOP,
-  NAVY_BOTTOM,
-  YELLOW_LIGHT,
   TEXT_ON_YELLOW,
   LAYOUT,
   TYPOGRAPHY,
   SHADOWS,
   getLeagueColor,
+  backgroundStyleFor,
+  HEADER_TEXT_COLOR,
+  HEADER_ACCENT_COLOR,
+  TITLE_COLOR,
+  type Theme,
 } from "./theme";
 import { fitNameFontSize } from "./textFit";
 
 type Props = {
   leagues: LeagueGroup[];
+  theme?: Theme;
 };
 
 // チーム名に使える横幅を、カード幅（1カラム/2カラムで異なる）・左右padding・
@@ -50,7 +53,7 @@ function findTokyoWaves(leagues: LeagueGroup[]) {
 }
 
 export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
-  function LeagueBoardTemplate({ leagues }, ref) {
+  function LeagueBoardTemplate({ leagues, theme = "standard" }, ref) {
     const tokyoWaves = findTokyoWaves(leagues);
 
     return (
@@ -59,13 +62,13 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
         style={{
           width: IMAGE_WIDTH,
           height: IMAGE_HEIGHT,
-          background: `radial-gradient(ellipse 1600px 1200px at 50% 0%, ${NAVY_TOP}, ${NAVY_BOTTOM} 80%)`,
+          background: backgroundStyleFor(theme),
           fontFamily: '"Noto Sans JP", sans-serif',
         }}
         className="relative flex flex-col overflow-hidden"
       >
-        {/* 背景の装飾（大きな光と小さな光のみで奥行きを作る） */}
-        <OceanBackground />
+        {/* 背景の装飾（大きな光と小さな光のみで奥行きを作る。標準テーマのみ） */}
+        {theme === "standard" && <OceanBackground />}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
           style={{
@@ -79,12 +82,18 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
           className="relative z-10 flex items-center justify-between pt-5"
           style={{ paddingLeft: LAYOUT.outerMargin, paddingRight: LAYOUT.outerMargin }}
         >
-          <div className="flex items-center gap-4 text-white">
+          <div
+            className="flex items-center gap-4"
+            style={{ color: HEADER_TEXT_COLOR[theme] }}
+          >
             <TokyoWavesLogo markOnly />
             <div className="flex flex-col leading-none">
               <span
-                style={{ fontSize: TYPOGRAPHY.small }}
-                className="font-bold tracking-[0.25em] text-blue-300"
+                style={{
+                  fontSize: TYPOGRAPHY.small,
+                  color: HEADER_ACCENT_COLOR[theme],
+                }}
+                className="font-bold tracking-[0.25em]"
               >
                 TOKYO WAVES
               </span>
@@ -106,7 +115,7 @@ export const LeagueBoardTemplate = forwardRef<HTMLDivElement, Props>(
               fontSize: 94,
               fontWeight: 900,
               letterSpacing: "-0.04em",
-              color: YELLOW_LIGHT,
+              color: TITLE_COLOR[theme],
               textShadow: "0 6px 18px rgba(0,0,0,0.25)",
               whiteSpace: "nowrap",
             }}

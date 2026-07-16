@@ -11,6 +11,7 @@ import { PostImageTemplate } from "../preview/PostImageTemplate";
 import { LeagueBoardTemplate } from "../preview/LeagueBoardTemplate";
 import { TimetableTemplate } from "../preview/TimetableTemplate";
 import { TournamentTemplate } from "../preview/TournamentTemplate";
+import type { Theme } from "../preview/theme";
 
 type Props = {
   tournament: Tournament;
@@ -18,6 +19,7 @@ type Props = {
   matches: TimetableMatch[];
   bracket: BracketData;
   timetableRound: string;
+  theme: Theme;
   onBackToConfirm: () => void;
 };
 
@@ -29,6 +31,7 @@ export function ExportStep({
   matches,
   bracket,
   timetableRound,
+  theme,
   onBackToConfirm,
 }: Props) {
   const units = useMemo(
@@ -135,7 +138,7 @@ export function ExportStep({
               <PostImageTemplate tournament={tournament} />
             )}
             {unit.kind === "league" && (
-              <LeagueBoardTemplate leagues={leagues} />
+              <LeagueBoardTemplate leagues={leagues} theme={theme} />
             )}
             {unit.kind === "timetable" && (
               <TimetableTemplate
@@ -143,10 +146,11 @@ export function ExportStep({
                 venue={unit.venue ?? ""}
                 round={timetableRound}
                 matches={unit.matches ?? []}
+                theme={theme}
               />
             )}
             {unit.kind === "tournament" && (
-              <TournamentTemplate data={bracket} />
+              <TournamentTemplate data={bracket} theme={theme} />
             )}
           </div>
         ))}

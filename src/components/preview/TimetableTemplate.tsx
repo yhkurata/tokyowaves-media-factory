@@ -7,8 +7,6 @@ import { BookmarkBadge } from "../decorative/BookmarkBadge";
 import { OceanBackground } from "../decorative/OceanBackground";
 import {
   NAVY_TOP,
-  NAVY_BOTTOM,
-  YELLOW_LIGHT,
   YELLOW_DARK,
   YELLOW_HIGHLIGHT,
   TEXT_ON_YELLOW,
@@ -16,6 +14,11 @@ import {
   TYPOGRAPHY,
   SHADOWS,
   getLeagueColor,
+  backgroundStyleFor,
+  HEADER_TEXT_COLOR,
+  HEADER_ACCENT_COLOR,
+  TITLE_COLOR,
+  type Theme,
 } from "./theme";
 import { fitNameFontSize } from "./textFit";
 
@@ -65,10 +68,11 @@ type Props = {
   venue: string;
   round: string;
   matches: TimetableMatch[];
+  theme?: Theme;
 };
 
 export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
-  function TimetableTemplate({ date, venue, round, matches }, ref) {
+  function TimetableTemplate({ date, venue, round, matches, theme = "standard" }, ref) {
     const rowScale = rowScaleFor(matches.length);
     return (
       <div
@@ -76,12 +80,12 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
         style={{
           width: IMAGE_WIDTH,
           height: IMAGE_HEIGHT,
-          background: `radial-gradient(ellipse 1600px 1200px at 50% 0%, ${NAVY_TOP}, ${NAVY_BOTTOM} 80%)`,
+          background: backgroundStyleFor(theme),
           fontFamily: '"Noto Sans JP", sans-serif',
         }}
         className="relative flex flex-col overflow-hidden"
       >
-        <OceanBackground />
+        {theme === "standard" && <OceanBackground />}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
           style={{
@@ -94,12 +98,18 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
           className="relative z-10 flex items-center justify-between pt-5"
           style={{ paddingLeft: LAYOUT.outerMargin, paddingRight: LAYOUT.outerMargin }}
         >
-          <div className="flex items-center gap-4 text-white">
+          <div
+            className="flex items-center gap-4"
+            style={{ color: HEADER_TEXT_COLOR[theme] }}
+          >
             <TokyoWavesLogo markOnly />
             <div className="flex flex-col leading-none">
               <span
-                style={{ fontSize: TYPOGRAPHY.small }}
-                className="font-bold tracking-[0.25em] text-blue-300"
+                style={{
+                  fontSize: TYPOGRAPHY.small,
+                  color: HEADER_ACCENT_COLOR[theme],
+                }}
+                className="font-bold tracking-[0.25em]"
               >
                 TOKYO WAVES
               </span>
@@ -121,7 +131,7 @@ export const TimetableTemplate = forwardRef<HTMLDivElement, Props>(
               fontSize: 87,
               fontWeight: 900,
               letterSpacing: "-0.04em",
-              color: YELLOW_LIGHT,
+              color: TITLE_COLOR[theme],
               textShadow: "0 6px 18px rgba(0,0,0,0.25)",
               whiteSpace: "nowrap",
             }}

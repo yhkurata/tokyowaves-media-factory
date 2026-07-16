@@ -48,6 +48,50 @@ export function getLeagueColor(index: number) {
 }
 
 // ============================================================
+// デザインテーマ（タイムテーブル・リーグ組み合わせ・トーナメント表で選択可能）
+// ============================================================
+// 「標準」＝上記の濃紺グラデーション。「ウォーター」＝固定の水しぶき素材
+// （public/assets/water-theme-bg.png、1080x1350最適化済み）。
+// ウォーターは背景が白〜水色主体で明るいため、紺背景を前提にした白文字は
+// そのままだと視認性が悪くなる。ヘッダー・タイトル・トーナメント表の罫線など
+// 明るい背景に乗る要素だけテーマ別の色に切り替える（フッターは両テーマとも
+// 背景下部が暗いグラデーションで覆われるため白のまま共通）。
+export type Theme = "standard" | "water";
+
+export const WATER_BACKGROUND_IMAGE = "/assets/water-theme-bg.png";
+
+export function backgroundStyleFor(theme: Theme): string {
+  return theme === "water"
+    ? `url(${WATER_BACKGROUND_IMAGE}) center / cover no-repeat`
+    : `radial-gradient(ellipse 1600px 1200px at 50% 0%, ${NAVY_TOP}, ${NAVY_BOTTOM} 80%)`;
+}
+
+export const HEADER_TEXT_COLOR: Record<Theme, string> = {
+  standard: "#ffffff",
+  water: NAVY_TOP,
+};
+
+export const HEADER_ACCENT_COLOR: Record<Theme, string> = {
+  standard: "#93c5fd", // Tailwind text-blue-300相当
+  water: "#1d4fb2",
+};
+
+export const TITLE_COLOR: Record<Theme, string> = {
+  standard: YELLOW_LIGHT,
+  water: NAVY_TOP,
+};
+
+export const BRACKET_LINE_COLOR: Record<Theme, string> = {
+  standard: "rgba(255,255,255,0.45)",
+  water: "rgba(13,18,48,0.45)",
+};
+
+export const ROUND_LABEL_COLOR: Record<Theme, string> = {
+  standard: "#93c5fd",
+  water: NAVY_TOP,
+};
+
+// ============================================================
 // レイアウト寸法（1080x1350キャンバス基準。全テンプレート共通）
 // ============================================================
 export const LAYOUT = {

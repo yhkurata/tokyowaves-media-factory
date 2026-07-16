@@ -14,6 +14,7 @@ import { ReviewChecklist, type ReviewChecklistHandle } from "./ReviewChecklist";
 import { PreviewGallery } from "./PreviewGallery";
 import { buildSections, buildExportUnits } from "../../lib/templateSections";
 import { buildReviewItems, teamNameGapRatio } from "../../lib/reviewItems";
+import type { Theme } from "../preview/theme";
 
 const TEAM_NAME_GAP_SUGGESTION_THRESHOLD = 0.3;
 
@@ -39,6 +40,8 @@ type Props = {
   onRemoveVenue: (dayId: string, venueId: string) => void;
   onProceedToExport: () => void;
   onAddMoreFiles: () => void;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
 };
 
 export function ConfirmStep({
@@ -58,6 +61,8 @@ export function ConfirmStep({
   onRemoveVenue,
   onProceedToExport,
   onAddMoreFiles,
+  theme,
+  onThemeChange,
 }: Props) {
   const [detailedEditOpen, setDetailedEditOpen] = useState(false);
   const reviewChecklistRef = useRef<ReviewChecklistHandle>(null);
@@ -144,6 +149,8 @@ export function ConfirmStep({
         leagues={leagueData.leagues}
         bracket={bracketData.data}
         timetableRound={timetableData.info.round}
+        theme={theme}
+        onThemeChange={onThemeChange}
       />
 
       <details

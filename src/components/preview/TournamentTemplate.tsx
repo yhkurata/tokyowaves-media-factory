@@ -7,14 +7,18 @@ import { BookmarkBadge } from "../decorative/BookmarkBadge";
 import { RibbonBanner } from "../decorative/RibbonBanner";
 import { OceanBackground } from "../decorative/OceanBackground";
 import {
-  NAVY_TOP,
-  NAVY_BOTTOM,
-  YELLOW_LIGHT,
   YELLOW_HIGHLIGHT,
   TEXT_ON_YELLOW,
   LAYOUT,
   TYPOGRAPHY,
   SHADOWS,
+  backgroundStyleFor,
+  HEADER_TEXT_COLOR,
+  HEADER_ACCENT_COLOR,
+  TITLE_COLOR,
+  BRACKET_LINE_COLOR,
+  ROUND_LABEL_COLOR,
+  type Theme,
 } from "./theme";
 
 const BOX_HEIGHT = 56;
@@ -48,7 +52,8 @@ function TeamBox({ name, placeholder }: { name: string; placeholder: string }) {
   );
 }
 
-function Connector() {
+function Connector({ theme }: { theme: Theme }) {
+  const color = BRACKET_LINE_COLOR[theme];
   return (
     <div
       className="pointer-events-none absolute right-0 z-0"
@@ -57,9 +62,9 @@ function Connector() {
         top: `calc(50% - ${HALF_SPAN}px)`,
         bottom: `calc(50% - ${HALF_SPAN}px)`,
         transform: `translateX(${CONNECTOR_WIDTH}px)`,
-        borderTop: "2px solid rgba(255,255,255,0.45)",
-        borderBottom: "2px solid rgba(255,255,255,0.45)",
-        borderRight: "2px solid rgba(255,255,255,0.45)",
+        borderTop: `2px solid ${color}`,
+        borderBottom: `2px solid ${color}`,
+        borderRight: `2px solid ${color}`,
       }}
     />
   );
@@ -70,11 +75,13 @@ function MatchPair({
   teamB,
   placeholder,
   connector = true,
+  theme,
 }: {
   teamA: string;
   teamB: string;
   placeholder: string;
   connector?: boolean;
+  theme: Theme;
 }) {
   return (
     <div
@@ -83,16 +90,22 @@ function MatchPair({
     >
       <TeamBox name={teamA} placeholder={placeholder} />
       <TeamBox name={teamB} placeholder={placeholder} />
-      {connector && <Connector />}
+      {connector && <Connector theme={theme} />}
     </div>
   );
 }
 
-function RoundLabel({ children }: { children: string }) {
+function RoundLabel({
+  children,
+  theme,
+}: {
+  children: string;
+  theme: Theme;
+}) {
   return (
     <div
-      className="mb-3 text-center font-black text-blue-300"
-      style={{ fontSize: 18, letterSpacing: "0.05em" }}
+      className="mb-3 text-center font-black"
+      style={{ fontSize: 18, letterSpacing: "0.05em", color: ROUND_LABEL_COLOR[theme] }}
     >
       {children}
     </div>
@@ -101,10 +114,11 @@ function RoundLabel({ children }: { children: string }) {
 
 type Props = {
   data: BracketData;
+  theme?: Theme;
 };
 
 export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
-  function TournamentTemplate({ data }, ref) {
+  function TournamentTemplate({ data, theme = "standard" }, ref) {
     const semisSlots = getSemisSlots(data.round1, data.round1Winners);
     const finalSlot = getFinalSlot(semisSlots, data.semisWinners);
     const champion = getChampion(finalSlot, data.finalWinner);
@@ -115,12 +129,12 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
         style={{
           width: IMAGE_WIDTH,
           height: IMAGE_HEIGHT,
-          background: `radial-gradient(ellipse 1600px 1200px at 50% 0%, ${NAVY_TOP}, ${NAVY_BOTTOM} 80%)`,
+          background: backgroundStyleFor(theme),
           fontFamily: '"Noto Sans JP", sans-serif',
         }}
         className="relative flex flex-col overflow-hidden"
       >
-        <OceanBackground />
+        {theme === "standard" && <OceanBackground />}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
           style={{
@@ -137,12 +151,18 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
             paddingRight: LAYOUT.outerMargin,
           }}
         >
-          <div className="flex items-center gap-4 text-white">
+          <div
+            className="flex items-center gap-4"
+            style={{ color: HEADER_TEXT_COLOR[theme] }}
+          >
             <TokyoWavesLogo markOnly />
             <div className="flex flex-col leading-none">
               <span
-                style={{ fontSize: TYPOGRAPHY.small }}
-                className="font-bold tracking-[0.25em] text-blue-300"
+                style={{
+                  fontSize: TYPOGRAPHY.small,
+                  color: HEADER_ACCENT_COLOR[theme],
+                }}
+                className="font-bold tracking-[0.25em]"
               >
                 TOKYO WAVES
               </span>
@@ -164,7 +184,7 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
               fontSize: 87,
               fontWeight: 900,
               letterSpacing: "-0.04em",
-              color: YELLOW_LIGHT,
+              color: TITLE_COLOR[theme],
               textShadow: "0 6px 18px rgba(0,0,0,0.25)",
               whiteSpace: "nowrap",
             }}
@@ -186,7 +206,7 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
         >
           {/* 1回戦 */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <RoundLabel>1回戦</RoundLabel>
+            <RoundLabel theme={theme}>1回戦</RoundLabel>
             <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 10 }}>
               {data.round1.map((slot, i) => (
                 <MatchPair
@@ -194,6 +214,7 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
                   teamA={slot.teamA}
                   teamB={slot.teamB}
                   placeholder="チーム名未入力"
+                  theme={theme}
                 />
               ))}
             </div>
@@ -201,7 +222,7 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
 
           {/* 準決勝 */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <RoundLabel>準決勝</RoundLabel>
+            <RoundLabel theme={theme}>準決勝</RoundLabel>
             <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 10 }}>
               {semisSlots.map((slot, i) => (
                 <MatchPair
@@ -209,6 +230,7 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
                   teamA={slot.teamA}
                   teamB={slot.teamB}
                   placeholder="1回戦の勝者"
+                  theme={theme}
                 />
               ))}
             </div>
@@ -216,13 +238,14 @@ export const TournamentTemplate = forwardRef<HTMLDivElement, Props>(
 
           {/* 決勝 */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <RoundLabel>決勝</RoundLabel>
+            <RoundLabel theme={theme}>決勝</RoundLabel>
             <div className="flex flex-1 flex-col justify-center">
               <MatchPair
                 teamA={finalSlot.teamA}
                 teamB={finalSlot.teamB}
                 placeholder="準決勝の勝者"
                 connector={false}
+                theme={theme}
               />
             </div>
           </div>
