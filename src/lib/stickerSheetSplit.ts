@@ -101,8 +101,23 @@ function evenBounds(length: number, count: number): number[] {
   return Array.from({ length: count + 1 }, (_, i) => (length / count) * i);
 }
 
+// セルは元シートの区切り位置なりの縦横比（横長・縦長）になりがちなので、
+// 短い辺の左右（または上下）に透明な余白を足して正方形にする。
+// トリミングではなく余白追加なので、絵柄が欠けることはない。
+function padCanvasToSquare(source: HTMLCanvasElement): HTMLCanvasElement {
+  const size = Math.max(source.width, source.height);
+  const squared = document.createElement("canvas");
+  squared.width = size;
+  squared.height = size;
+  const ctx = squared.getContext("2d");
+  if (!ctx) throw new Error("画像分割用のCanvasを初期化できませんでした。");
+  ctx.drawImage(source, (size - source.width) / 2, (size - source.height) / 2);
+  return squared;
+}
+
 export async function splitStickerSheet(
   sheetDataUrl: string,
+  options?: { squareify?: boolean },
 ): Promise<string[]> {
   const img = await loadImage(sheetDataUrl);
   const canvas = document.createElement("canvas");
@@ -156,7 +171,10 @@ export async function splitStickerSheet(
         cellCanvas.width,
         cellCanvas.height,
       );
-      results.push(cellCanvas.toDataURL("image/png"));
+      const finalCanvas = options?.squareify
+        ? padCanvasToSquare(cellCanvas)
+        : cellCanvas;
+      results.push(finalCanvas.toDataURL("image/png"));
     }
   }
   return results;
