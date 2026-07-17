@@ -50,9 +50,9 @@ export function buildSheetGenerationPrompt(
 
   return `Create a single image containing a ${count}-panel grid of individual LINE sticker illustrations, arranged 4 columns wide, laid out like a reference sheet (thin border lines separating each cell, light blue background per cell). Use the exact same character design in every single cell — only the pose, expression, and text change between cells.
 
-IMPORTANT — canvas proportions: LINE's official sticker format is 370×320px — a width:height ratio of about 37:32, slightly wider than it is tall (NOT a perfect square, and NOT a tall portrait shape). Generate the overall sheet at this same ratio (about 37:32) so each cropped cell comes out already close to LINE's real proportions.
+IMPORTANT — canvas proportions: generate the overall sheet as a SQUARE canvas (1:1 aspect ratio, e.g. 1024×1024 or larger). Do NOT use a wide/landscape canvas (e.g. 3:2 or 16:9) — LINE stickers must fit within 370×320px, and a square canvas keeps each cropped cell close to that shape. A perfect square is fine; LINE does not require the sticker to fill the full 370×320 rectangle.
 
-IMPORTANT — resolution: render the sheet at the highest resolution you support, at least 2000×1730 pixels (keeping the 37:32 ratio above). Each individual cell will be cropped out afterward, so a low-resolution sheet directly produces blurry, low-quality individual stickers — do not downscale or compress the output.
+IMPORTANT — resolution: render the sheet at the highest resolution you support (at least 2000×2000 pixels, keeping it square). Each individual cell will be cropped out afterward, so a low-resolution sheet directly produces blurry, low-quality individual stickers — do not downscale or compress the output.
 
 IMPORTANT — character composition: draw each character upright and vertically composed within its cell — standing, sitting, or kneeling, filling the frame from top to bottom. Do NOT draw the character lying down, stretched out sideways, or with a wide horizontal pose (e.g. arms flung far out to both sides) — that makes the character itself look landscape/horizontal even on a correctly-shaped cell. The character's own silhouette should be taller than it is wide, with a little breathing room at the left and right edges of the cell.
 
@@ -63,5 +63,5 @@ Each cell must be a self-contained sticker: bold black outlines, cel-shaded brig
 
 ${cells}
 
-Output one single combined image (the full grid), not separate images. Keep every cell the same size and the same overall art style so it can be cropped into individual stickers afterward. Remember: each cell should be slightly wider than tall (about 37:32), matching LINE's real 370×320px sticker format — not a perfect square, and not portrait.`;
+Output one single combined image (the full grid), not separate images. Keep every cell the same size and the same overall art style so it can be cropped into individual stickers afterward. Remember: the whole sheet must be a SQUARE canvas (1:1), not landscape/widescreen.`;
 }
