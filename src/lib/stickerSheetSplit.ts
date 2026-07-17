@@ -16,6 +16,13 @@ const EDGE_INSET_RATIO = 0.015;
 const DARK_THRESHOLD = 90;
 // 画像のごく外周に近い検出は、シート全体の外枠であって内部の区切り線ではないとみなし除外する。
 const EDGE_MARGIN_RATIO = 0.02;
+// セル内でキャラクター/文字とみなす色の差分しきい値（背景色との合計RGB差）。
+const CONTENT_DIFF_THRESHOLD = 28;
+// キャラクター/文字の重心をセル中央に寄せる際、動かしてよい最大量（セル幅に対する比率）。
+// 大きくしすぎると隣のセルの内容まで切り出してしまうため小さめに制限する。
+const MAX_CENTER_SHIFT_RATIO = 0.06;
+// 背景色をサンプリングする位置（セルの角そのものは縁取り線でアンチエイリアスがかかるため少し内側から取る）。
+const BG_SAMPLE_INSET = 3;
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -101,6 +108,63 @@ function evenBounds(length: number, count: number): number[] {
   return Array.from({ length: count + 1 }, (_, i) => (length / count) * i);
 }
 
+function colorAt(
+  data: Uint8ClampedArray,
+  width: number,
+  x: number,
+  y: number,
+): [number, number, number] {
+  const idx = (Math.round(y) * width + Math.round(x)) * 4;
+  return [data[idx], data[idx + 1], data[idx + 2]];
+}
+
+function colorDistance(
+  a: [number, number, number],
+  b: [number, number, number],
+): number {
+  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+}
+
+// セル内で背景色と異なる画素(=キャラクターや文字)が水平方向にどこまで
+// 広がっているかを調べ、その水平方向の重心(中心)を返す。セルが背景色
+// 一色しか含まない場合はnullを返す。
+function findContentCenterX(
+  data: Uint8ClampedArray,
+  sheetWidth: number,
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+): number | null {
+  const bg = colorAt(
+    data,
+    sheetWidth,
+    left + BG_SAMPLE_INSET,
+    top + BG_SAMPLE_INSET,
+  );
+  let minX: number | null = null;
+  let maxX: number | null = null;
+  const xStart = Math.round(left);
+  const xEnd = Math.round(right);
+  const yStart = Math.round(top);
+  const yEnd = Math.round(bottom);
+  for (let x = xStart; x < xEnd; x++) {
+    let hasContent = false;
+    for (let y = yStart; y < yEnd; y += 2) {
+      if (colorDistance(colorAt(data, sheetWidth, x, y), bg) > CONTENT_DIFF_THRESHOLD) {
+        hasContent = true;
+        break;
+      }
+    }
+    if (hasContent) {
+      if (minX === null) minX = x;
+      maxX = x;
+    }
+  }
+  if (minX === null || maxX === null) return null;
+  return (minX + maxX) / 2;
+}
+
 export async function splitStickerSheet(
   sheetDataUrl: string,
 ): Promise<string[]> {
@@ -131,8 +195,24 @@ export async function splitStickerSheet(
     for (let col = 0; col < GRID_COLS; col++) {
       const top = rowBounds[row];
       const bottom = rowBounds[row + 1];
-      const left = colBounds[col];
-      const right = colBounds[col + 1];
+      let left = colBounds[col];
+      let right = colBounds[col + 1];
+
+      // キャラクター/文字がセル内で左右どちらかに寄っている場合、その重心が
+      // セル中央に来るよう切り出し窓を水平方向にずらす(拡大・縮小はしない)。
+      const contentCenterX = findContentCenterX(data, img.width, left, right, top, bottom);
+      if (contentCenterX !== null) {
+        const cellWidth = right - left;
+        const cellCenterX = (left + right) / 2;
+        let shift = cellCenterX - contentCenterX;
+        const maxShift = cellWidth * MAX_CENTER_SHIFT_RATIO;
+        shift = Math.max(-maxShift, Math.min(maxShift, shift));
+        shift = Math.min(shift, left);
+        shift = Math.max(shift, right - img.width);
+        left -= shift;
+        right -= shift;
+      }
+
       const insetX = (right - left) * EDGE_INSET_RATIO;
       const insetY = (bottom - top) * EDGE_INSET_RATIO;
       const sx = left + insetX;

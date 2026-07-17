@@ -3,7 +3,6 @@ import type { StickerGender, StickerLibraryItem } from "../../types/sticker";
 import { fileToDataUrl } from "../../lib/imageFile";
 import { recognizeStickerPhrases } from "../../lib/stickerApi";
 import { estimateRecognizeCost } from "../../lib/stickerCostEstimate";
-import { splitStickerSheet } from "../../lib/stickerSheetSplit";
 
 const GENDER_LABELS: Record<StickerGender, string> = {
   boy: "男の子",
@@ -38,10 +37,8 @@ export function StickerLibraryPanel({
   onRemove,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const sheetInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingUpload | null>(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
-  const [isSplitting, setIsSplitting] = useState(false);
   const [error, setError] = useState("");
 
   const handleFilesSelected = async (files: FileList | null) => {
@@ -51,24 +48,6 @@ export function StickerLibraryPanel({
     );
     setPending({ dataUrls });
     if (inputRef.current) inputRef.current.value = "";
-  };
-
-  const handleSheetSelected = async (file: File | undefined) => {
-    if (!file) return;
-    setError("");
-    setIsSplitting(true);
-    try {
-      const sheetDataUrl = await fileToDataUrl(file);
-      const dataUrls = await splitStickerSheet(sheetDataUrl);
-      setPending({ dataUrls });
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "シート画像の分割に失敗しました。",
-      );
-    } finally {
-      setIsSplitting(false);
-      if (sheetInputRef.current) sheetInputRef.current.value = "";
-    }
   };
 
   const handleRecognizeAndAdd = async () => {
@@ -115,14 +94,6 @@ export function StickerLibraryPanel({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => sheetInputRef.current?.click()}
-            disabled={isSplitting}
-            className="rounded-md border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSplitting ? "分割中..." : "シート画像を分割して追加（4×4）"}
-          </button>
-          <button
-            type="button"
             onClick={() => inputRef.current?.click()}
             className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
           >
@@ -136,13 +107,6 @@ export function StickerLibraryPanel({
           accept="image/png,image/jpeg"
           className="hidden"
           onChange={(e) => void handleFilesSelected(e.target.files)}
-        />
-        <input
-          ref={sheetInputRef}
-          type="file"
-          accept="image/png,image/jpeg"
-          className="hidden"
-          onChange={(e) => void handleSheetSelected(e.target.files?.[0])}
         />
       </div>
 
