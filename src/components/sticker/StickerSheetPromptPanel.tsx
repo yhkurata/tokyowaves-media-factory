@@ -34,7 +34,6 @@ export function StickerSheetPromptPanel({
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState("");
   const [assignedCount, setAssignedCount] = useState(0);
-  const [squareify, setSquareify] = useState(true);
   const sheetInputRef = useRef<HTMLInputElement>(null);
 
   if (sortedBatches.length === 0) return null;
@@ -56,7 +55,7 @@ export function StickerSheetPromptPanel({
     setIsAssigning(true);
     try {
       const sheetDataUrl = await fileToDataUrl(file);
-      const pieces = await splitStickerSheet(sheetDataUrl, { squareify });
+      const pieces = await splitStickerSheet(sheetDataUrl);
       if (pieces.length !== batchCandidates.length) {
         setAssignError(
           `シートは4×4（16分割）を想定していますが、このバッチの候補数は${batchCandidates.length}件のため一致しません。`,
@@ -141,14 +140,6 @@ export function StickerSheetPromptPanel({
           4×4に分割し、このバッチの各候補（プロンプトと同じ並び順）の完成画像として
           そのまま登録します。
         </p>
-        <label className="flex items-center gap-1.5 text-xs text-gray-500">
-          <input
-            type="checkbox"
-            checked={squareify}
-            onChange={(e) => setSquareify(e.target.checked)}
-          />
-          正方形に整える（端の色を自然に延長、絵柄は切れません）
-        </label>
         <button
           type="button"
           onClick={() => sheetInputRef.current?.click()}

@@ -42,7 +42,6 @@ export function StickerLibraryPanel({
   const [pending, setPending] = useState<PendingUpload | null>(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
-  const [squareify, setSquareify] = useState(true);
   const [error, setError] = useState("");
 
   const handleFilesSelected = async (files: FileList | null) => {
@@ -60,7 +59,7 @@ export function StickerLibraryPanel({
     setIsSplitting(true);
     try {
       const sheetDataUrl = await fileToDataUrl(file);
-      const dataUrls = await splitStickerSheet(sheetDataUrl, { squareify });
+      const dataUrls = await splitStickerSheet(sheetDataUrl);
       setPending({ dataUrls });
     } catch (err) {
       setError(
@@ -146,15 +145,6 @@ export function StickerLibraryPanel({
           onChange={(e) => void handleSheetSelected(e.target.files?.[0])}
         />
       </div>
-
-      <label className="flex items-center gap-1.5 text-xs text-gray-500">
-        <input
-          type="checkbox"
-          checked={squareify}
-          onChange={(e) => setSquareify(e.target.checked)}
-        />
-        シート分割時に正方形に整える（端の色を自然に延長、絵柄は切れません）
-      </label>
 
       {pending && (
         <div className="space-y-2 rounded-md border border-yellow-300 bg-yellow-50 p-3">

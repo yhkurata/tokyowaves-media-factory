@@ -101,58 +101,8 @@ function evenBounds(length: number, count: number): number[] {
   return Array.from({ length: count + 1 }, (_, i) => (length / count) * i);
 }
 
-// セルは元シートの区切り位置なりの縦横比（横長・縦長）になりがちなので、
-// 短い辺を正方形になるまで拡張する。単に透明な余白を足すと、LINEで実際に
-// 使ったときに「画像を貼った感」が出る不自然な縁ができてしまうため、
-// 余白部分には端の1行/1列を引き伸ばして敷き詰め、背景の色味を自然に
-// 繋げる（トリミングではないので絵柄が欠けることはない）。
-function extendEdgesToSquare(source: HTMLCanvasElement): HTMLCanvasElement {
-  const size = Math.max(source.width, source.height);
-  const squared = document.createElement("canvas");
-  squared.width = size;
-  squared.height = size;
-  const ctx = squared.getContext("2d");
-  if (!ctx) throw new Error("画像分割用のCanvasを初期化できませんでした。");
-
-  const dx = Math.round((size - source.width) / 2);
-  const dy = Math.round((size - source.height) / 2);
-
-  if (dy > 0) {
-    // 横長：上下に余白ができるため、上端・下端の1行を引き伸ばして敷き詰める
-    ctx.drawImage(source, 0, 0, source.width, 1, dx, 0, source.width, dy);
-    ctx.drawImage(
-      source,
-      0,
-      source.height - 1,
-      source.width,
-      1,
-      dx,
-      dy + source.height,
-      source.width,
-      size - dy - source.height,
-    );
-  } else if (dx > 0) {
-    // 縦長：左右に余白ができるため、左端・右端の1列を引き伸ばして敷き詰める
-    ctx.drawImage(source, 0, 0, 1, source.height, 0, dy, dx, source.height);
-    ctx.drawImage(
-      source,
-      source.width - 1,
-      0,
-      1,
-      source.height,
-      dx + source.width,
-      dy,
-      size - dx - source.width,
-      source.height,
-    );
-  }
-  ctx.drawImage(source, dx, dy);
-  return squared;
-}
-
 export async function splitStickerSheet(
   sheetDataUrl: string,
-  options?: { squareify?: boolean },
 ): Promise<string[]> {
   const img = await loadImage(sheetDataUrl);
   const canvas = document.createElement("canvas");
@@ -206,10 +156,7 @@ export async function splitStickerSheet(
         cellCanvas.width,
         cellCanvas.height,
       );
-      const finalCanvas = options?.squareify
-        ? extendEdgesToSquare(cellCanvas)
-        : cellCanvas;
-      results.push(finalCanvas.toDataURL("image/png"));
+      results.push(cellCanvas.toDataURL("image/png"));
     }
   }
   return results;
