@@ -153,7 +153,7 @@ export function StickerLibraryPanel({
           checked={squareify}
           onChange={(e) => setSquareify(e.target.checked)}
         />
-        シート分割時に正方形に整える（余白を追加、絵柄は切れません）
+        シート分割時に正方形に整える（端の色を自然に延長、絵柄は切れません）
       </label>
 
       {pending && (

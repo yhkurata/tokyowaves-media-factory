@@ -8,6 +8,7 @@ import { StickerSheetPromptPanel } from "./StickerSheetPromptPanel";
 import { dataUrlToBlob } from "../../lib/imageFile";
 import { deliverAsZip, type ExportedFile } from "../../lib/exportDelivery";
 import { estimateBatchCost } from "../../lib/stickerCostEstimate";
+import { convertToLineStickerFormat } from "../../lib/lineStickerFormat";
 
 type Props = {
   stickerData: ReturnType<typeof useStickerData>;
@@ -59,18 +60,32 @@ export function StickerProductionScreen({ stickerData }: Props) {
     );
   };
 
+  // 完成画像があるものは、LINE形式へ未変換でもここでまとめて変換してからZIPに詰める。
+  // 1件ずつカードを開いて「LINEスタンプ形式に変換」を押す手間を無くすための一括操作。
   const handleZipExport = async () => {
-    const targets = data.candidates.filter(
-      (c) => c.lineFormattedImageDataUrl,
-    );
+    const targets = data.candidates.filter((c) => c.completedImageDataUrl);
     if (targets.length === 0) return;
     setIsZipping(true);
     setZipError("");
     try {
-      const files: ExportedFile[] = targets.map((c, i) => ({
-        filename: `${String(i + 1).padStart(2, "0")}_${sanitizeFilenamePart(c.plan.phrase)}.png`,
-        blob: dataUrlToBlob(c.lineFormattedImageDataUrl as string),
-      }));
+      const files: ExportedFile[] = [];
+      for (let i = 0; i < targets.length; i++) {
+        const candidate = targets[i];
+        const lineFormatted =
+          candidate.lineFormattedImageDataUrl ??
+          (await convertToLineStickerFormat(
+            candidate.completedImageDataUrl as string,
+          ));
+        if (!candidate.lineFormattedImageDataUrl) {
+          stickerData.updateCandidate(candidate.id, {
+            lineFormattedImageDataUrl: lineFormatted,
+          });
+        }
+        files.push({
+          filename: `${String(i + 1).padStart(2, "0")}_${sanitizeFilenamePart(candidate.plan.phrase)}.png`,
+          blob: dataUrlToBlob(lineFormatted),
+        });
+      }
       await deliverAsZip(files, "LINEスタンプ完成画像.zip");
     } catch (err) {
       setZipError(
@@ -82,7 +97,7 @@ export function StickerProductionScreen({ stickerData }: Props) {
   };
 
   const completedCount = data.candidates.filter(
-    (c) => c.lineFormattedImageDataUrl,
+    (c) => c.completedImageDataUrl,
   ).length;
 
   return (
@@ -143,8 +158,8 @@ export function StickerProductionScreen({ stickerData }: Props) {
             className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isZipping
-              ? "出力中..."
-              : `LINE形式画像をZIP出力（${completedCount}件）`}
+              ? "変換・出力中..."
+              : `完成画像を一括変換してZIP保存（${completedCount}件）`}
           </button>
         </div>
         {zipError && (

@@ -147,7 +147,7 @@ export function StickerSheetPromptPanel({
             checked={squareify}
             onChange={(e) => setSquareify(e.target.checked)}
           />
-          正方形に整える（余白を追加、絵柄は切れません）
+          正方形に整える（端の色を自然に延長、絵柄は切れません）
         </label>
         <button
           type="button"
