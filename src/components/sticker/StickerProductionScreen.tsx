@@ -121,6 +121,14 @@ export function StickerProductionScreen({ stickerData }: Props) {
         characterSettings={data.characterSettings}
         batches={data.batches}
         candidates={data.candidates}
+        onAssignCompletedImages={(assignments) => {
+          for (const { id, imageDataUrl } of assignments) {
+            stickerData.updateCandidate(id, {
+              completedImageDataUrl: imageDataUrl,
+              status: "completed",
+            });
+          }
+        }}
       />
 
       <section className="space-y-2">
