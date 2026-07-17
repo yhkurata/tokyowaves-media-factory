@@ -54,6 +54,8 @@ IMPORTANT — canvas proportions: LINE's official sticker format is 370×320px �
 
 IMPORTANT — resolution: render the sheet at the highest resolution you support, at least 2000×1730 pixels (keeping the 37:32 ratio above). Each individual cell will be cropped out afterward, so a low-resolution sheet directly produces blurry, low-quality individual stickers — do not downscale or compress the output.
 
+IMPORTANT — character composition: draw each character upright and vertically composed within its cell — standing, sitting, or kneeling, filling the frame from top to bottom. Do NOT draw the character lying down, stretched out sideways, or with a wide horizontal pose (e.g. arms flung far out to both sides) — that makes the character itself look landscape/horizontal even on a correctly-shaped cell. The character's own silhouette should be taller than it is wide, with a little breathing room at the left and right edges of the cell.
+
 Character design (keep identical across all ${count} cells):
 ${characterBlock(characterSettings)}
 
