@@ -52,6 +52,8 @@ export function buildSheetGenerationPrompt(
 
 IMPORTANT — canvas proportions: the overall sheet image must be a SQUARE (1:1 aspect ratio), so that each individual cell also comes out approximately square once cropped. Do not make the sheet wider than it is tall — LINE stickers need roughly square cells, not wide/landscape ones.
 
+IMPORTANT — resolution: render the sheet at the highest resolution you support (at least 2048×2048 pixels total). Each individual cell will be cropped out afterward, so a low-resolution sheet directly produces blurry, low-quality individual stickers — do not downscale or compress the output.
+
 Character design (keep identical across all ${count} cells):
 ${characterBlock(characterSettings)}
 

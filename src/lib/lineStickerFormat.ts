@@ -40,6 +40,8 @@ export async function convertToLineStickerFormat(
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("画像変換用のCanvasを初期化できませんでした。");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(img, 0, 0, width, height);
 
