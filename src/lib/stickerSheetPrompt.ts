@@ -50,6 +50,8 @@ export function buildSheetGenerationPrompt(
 
   return `Create a single image containing a ${count}-panel grid of individual LINE sticker illustrations, arranged 4 columns wide, laid out like a reference sheet (thin border lines separating each cell, light blue background per cell). Use the exact same character design in every single cell — only the pose, expression, and text change between cells.
 
+IMPORTANT — canvas proportions: the overall sheet image must be a SQUARE (1:1 aspect ratio), so that each individual cell also comes out approximately square once cropped. Do not make the sheet wider than it is tall — LINE stickers need roughly square cells, not wide/landscape ones.
+
 Character design (keep identical across all ${count} cells):
 ${characterBlock(characterSettings)}
 
@@ -57,5 +59,5 @@ Each cell must be a self-contained sticker: bold black outlines, cel-shaded brig
 
 ${cells}
 
-Output one single combined image (the full grid), not separate images. Keep every cell the same size and the same overall art style so it can be cropped into individual stickers afterward.`;
+Output one single combined image (the full grid), not separate images. Keep every cell the same size and the same overall art style so it can be cropped into individual stickers afterward. Remember: the whole sheet must be square (1:1), not landscape.`;
 }
