@@ -50,9 +50,9 @@ export function buildSheetGenerationPrompt(
 
   return `Create a single image containing a ${count}-panel grid of individual LINE sticker illustrations, arranged 4 columns wide, laid out like a reference sheet (thin border lines separating each cell, light blue background per cell). Use the exact same character design in every single cell — only the pose, expression, and text change between cells.
 
-IMPORTANT — canvas proportions: the overall sheet image must be a SQUARE (1:1 aspect ratio), so that each individual cell also comes out approximately square once cropped. Do not make the sheet wider than it is tall — LINE stickers need roughly square cells, not wide/landscape ones.
+IMPORTANT — canvas proportions: LINE's official sticker format is 370×320px — a width:height ratio of about 37:32, slightly wider than it is tall (NOT a perfect square, and NOT a tall portrait shape). Generate the overall sheet at this same ratio (about 37:32) so each cropped cell comes out already close to LINE's real proportions.
 
-IMPORTANT — resolution: render the sheet at the highest resolution you support (at least 2048×2048 pixels total). Each individual cell will be cropped out afterward, so a low-resolution sheet directly produces blurry, low-quality individual stickers — do not downscale or compress the output.
+IMPORTANT — resolution: render the sheet at the highest resolution you support, at least 2000×1730 pixels (keeping the 37:32 ratio above). Each individual cell will be cropped out afterward, so a low-resolution sheet directly produces blurry, low-quality individual stickers — do not downscale or compress the output.
 
 Character design (keep identical across all ${count} cells):
 ${characterBlock(characterSettings)}
@@ -61,5 +61,5 @@ Each cell must be a self-contained sticker: bold black outlines, cel-shaded brig
 
 ${cells}
 
-Output one single combined image (the full grid), not separate images. Keep every cell the same size and the same overall art style so it can be cropped into individual stickers afterward. Remember: the whole sheet must be square (1:1), not landscape.`;
+Output one single combined image (the full grid), not separate images. Keep every cell the same size and the same overall art style so it can be cropped into individual stickers afterward. Remember: each cell should be slightly wider than tall (about 37:32), matching LINE's real 370×320px sticker format — not a perfect square, and not portrait.`;
 }
