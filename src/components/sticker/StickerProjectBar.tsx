@@ -1,17 +1,20 @@
 import { useRef, useState } from "react";
 import {
-  buildStickerProjectData,
-  parseStickerProjectData,
-  serializeStickerProjectData,
-  stickerProjectFilename,
+  buildStickerWorkspace,
+  parseStickerWorkspace,
+  serializeStickerWorkspace,
+  stickerWorkspaceFilename,
   StickerProjectFileParseError,
 } from "../../lib/stickerProjectFile";
 import { triggerBlobDownload } from "../../lib/exportImage";
-import type { StickerProjectData, StickerSnapshot } from "../../types/sticker";
+import type {
+  StickerWorkspace,
+  StickerWorkspaceSnapshot,
+} from "../../types/sticker";
 
 type Props = {
-  snapshot: StickerSnapshot;
-  onLoad: (data: StickerProjectData) => void;
+  snapshot: StickerWorkspaceSnapshot;
+  onLoad: (data: StickerWorkspace) => void;
 };
 
 export function StickerProjectBar({ snapshot, onLoad }: Props) {
@@ -19,10 +22,10 @@ export function StickerProjectBar({ snapshot, onLoad }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
-    const data = buildStickerProjectData(snapshot);
-    const json = serializeStickerProjectData(data);
+    const data = buildStickerWorkspace(snapshot);
+    const json = serializeStickerWorkspace(data);
     const blob = new Blob([json], { type: "application/json" });
-    triggerBlobDownload(blob, stickerProjectFilename());
+    triggerBlobDownload(blob, stickerWorkspaceFilename());
   };
 
   const handleFileSelected = async (file: File | undefined) => {
@@ -30,7 +33,7 @@ export function StickerProjectBar({ snapshot, onLoad }: Props) {
     setError("");
     try {
       const text = await file.text();
-      const data = parseStickerProjectData(text);
+      const data = parseStickerWorkspace(text);
       onLoad(data);
     } catch (err) {
       setError(

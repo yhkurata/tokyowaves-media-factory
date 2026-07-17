@@ -92,9 +92,37 @@ export interface StickerLibraryItem {
   createdAt: string;
 }
 
-export type StickerSnapshot = Omit<StickerProjectData, "formatVersion" | "savedAt">;
+// 将来、複数のキャラクター（例：男の子版・女の子版・別チームのマスコット等）を
+// 並行して管理できるよう、キャラクター設定・スタンプライブラリ・生成履歴を
+// 「プロジェクト」単位でひとまとめにする。Ver1のUIは常に1プロジェクト
+// （ワークスペース内の先頭・アクティブなもの）だけを操作するが、内部データは
+// 最初から複数プロジェクトを保持できる形にしておく。
+export interface StickerCharacterProject {
+  id: string;
+  name: string; // 例：「WAVES男の子」「WAVES女の子」
+  characterSettings: CharacterSettings;
+  library: StickerLibraryItem[];
+  batches: StickerBatch[];
+  candidates: StickerCandidate[];
+  createdAt: string;
+  updatedAt: string;
+}
 
-export interface StickerProjectData {
+export type StickerWorkspaceSnapshot = Omit<
+  StickerWorkspace,
+  "formatVersion" | "savedAt"
+>;
+
+export interface StickerWorkspace {
+  formatVersion: 2;
+  savedAt: string;
+  projects: StickerCharacterProject[];
+  activeProjectId: string;
+}
+
+// Ver1で保存されていた旧形式（プロジェクト分けなし・単一キャラクターのみ）。
+// 古い保存ファイルを読み込めるよう、移行処理の入力型として残しておく。
+export interface LegacyStickerProjectData {
   formatVersion: 1;
   savedAt: string;
   characterSettings: CharacterSettings;
@@ -120,13 +148,51 @@ export function createEmptyCharacterSettings(): CharacterSettings {
   };
 }
 
-export function createEmptyStickerProjectData(): StickerProjectData {
+export function createEmptyStickerCharacterProject(
+  name = "デフォルト",
+): StickerCharacterProject {
+  const epoch = new Date(0).toISOString();
   return {
-    formatVersion: 1,
-    savedAt: new Date(0).toISOString(),
+    id: crypto.randomUUID(),
+    name,
     characterSettings: createEmptyCharacterSettings(),
     library: [],
     batches: [],
     candidates: [],
+    createdAt: epoch,
+    updatedAt: epoch,
+  };
+}
+
+export function createEmptyStickerWorkspace(): StickerWorkspace {
+  const project = createEmptyStickerCharacterProject();
+  return {
+    formatVersion: 2,
+    savedAt: new Date(0).toISOString(),
+    projects: [project],
+    activeProjectId: project.id,
+  };
+}
+
+// 旧形式（formatVersion: 1、単一キャラクターのみ）を、
+// 1件のプロジェクトを持つワークスペースへ変換する。
+export function migrateLegacyStickerProjectData(
+  legacy: LegacyStickerProjectData,
+): StickerWorkspace {
+  const project: StickerCharacterProject = {
+    id: crypto.randomUUID(),
+    name: "デフォルト",
+    characterSettings: legacy.characterSettings,
+    library: legacy.library,
+    batches: legacy.batches,
+    candidates: legacy.candidates,
+    createdAt: legacy.savedAt,
+    updatedAt: legacy.savedAt,
+  };
+  return {
+    formatVersion: 2,
+    savedAt: new Date().toISOString(),
+    projects: [project],
+    activeProjectId: project.id,
   };
 }

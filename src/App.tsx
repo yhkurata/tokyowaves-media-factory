@@ -285,12 +285,10 @@ function App() {
         ) : (
           <StickerProjectBar
             snapshot={{
-              characterSettings: stickerData.data.characterSettings,
-              library: stickerData.data.library,
-              batches: stickerData.data.batches,
-              candidates: stickerData.data.candidates,
+              projects: stickerData.workspace.projects,
+              activeProjectId: stickerData.workspace.activeProjectId,
             }}
-            onLoad={stickerData.loadProject}
+            onLoad={stickerData.loadWorkspace}
           />
         )}
       </header>

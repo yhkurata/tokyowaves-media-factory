@@ -1,31 +1,54 @@
 import { useState } from "react";
 import {
-  createEmptyStickerProjectData,
+  createEmptyStickerCharacterProject,
+  createEmptyStickerWorkspace,
   type CharacterSettings,
   type StickerBatch,
   type StickerCandidate,
+  type StickerCharacterProject,
   type StickerLibraryItem,
-  type StickerProjectData,
+  type StickerWorkspace,
 } from "../types/sticker";
 
 function createId() {
   return crypto.randomUUID();
 }
 
+// キャラクター設定・スタンプライブラリ・生成履歴を「プロジェクト」単位で
+// 保持するワークスペースを管理するフック。Ver1のUIは常にアクティブな
+// 1プロジェクト（data）だけを操作するが、内部的には複数プロジェクトを
+// 保持・切り替えできる構造にしてある（将来の複数キャラクター管理に備えて）。
 export function useStickerData() {
-  const [data, setData] = useState<StickerProjectData>(
-    createEmptyStickerProjectData(),
+  const [workspace, setWorkspace] = useState<StickerWorkspace>(() =>
+    createEmptyStickerWorkspace(),
   );
 
-  const loadProject = (next: StickerProjectData) => {
-    setData(next);
+  const activeProject =
+    workspace.projects.find((p) => p.id === workspace.activeProjectId) ??
+    workspace.projects[0];
+
+  const updateActiveProject = (
+    updater: (project: StickerCharacterProject) => StickerCharacterProject,
+  ) => {
+    setWorkspace((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) =>
+        p.id === prev.activeProjectId
+          ? { ...updater(p), updatedAt: new Date().toISOString() }
+          : p,
+      ),
+    }));
+  };
+
+  const loadWorkspace = (next: StickerWorkspace) => {
+    setWorkspace(next);
   };
 
   const updateCharacterSettings = (patch: Partial<CharacterSettings>) => {
-    setData((prev) => ({
-      ...prev,
+    updateActiveProject((p) => ({
+      ...p,
       characterSettings: {
-        ...prev.characterSettings,
+        ...p.characterSettings,
         ...patch,
         updatedAt: new Date().toISOString(),
       },
@@ -41,7 +64,7 @@ export function useStickerData() {
       id: createId(),
       createdAt: now,
     }));
-    setData((prev) => ({ ...prev, library: [...prev.library, ...next] }));
+    updateActiveProject((p) => ({ ...p, library: [...p.library, ...next] }));
     return next;
   };
 
@@ -49,18 +72,18 @@ export function useStickerData() {
     id: string,
     patch: Partial<Pick<StickerLibraryItem, "label" | "gender">>,
   ) => {
-    setData((prev) => ({
-      ...prev,
-      library: prev.library.map((item) =>
+    updateActiveProject((p) => ({
+      ...p,
+      library: p.library.map((item) =>
         item.id === id ? { ...item, ...patch } : item,
       ),
     }));
   };
 
   const removeLibraryItem = (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      library: prev.library.filter((item) => item.id !== id),
+    updateActiveProject((p) => ({
+      ...p,
+      library: p.library.filter((item) => item.id !== id),
     }));
   };
 
@@ -81,18 +104,18 @@ export function useStickerData() {
       lineFormattedImageDataUrl: null,
       createdAt: now,
     }));
-    setData((prev) => ({
-      ...prev,
-      batches: [...prev.batches, newBatch],
-      candidates: [...prev.candidates, ...newCandidates],
+    updateActiveProject((p) => ({
+      ...p,
+      batches: [...p.batches, newBatch],
+      candidates: [...p.candidates, ...newCandidates],
     }));
     return newCandidates;
   };
 
   const updateCandidate = (id: string, patch: Partial<StickerCandidate>) => {
-    setData((prev) => ({
-      ...prev,
-      candidates: prev.candidates.map((c) =>
+    updateActiveProject((p) => ({
+      ...p,
+      candidates: p.candidates.map((c) =>
         c.id === id ? { ...c, ...patch } : c,
       ),
     }));
@@ -102,24 +125,67 @@ export function useStickerData() {
     id: string,
     patch: Partial<StickerCandidate["plan"]>,
   ) => {
-    setData((prev) => ({
-      ...prev,
-      candidates: prev.candidates.map((c) =>
+    updateActiveProject((p) => ({
+      ...p,
+      candidates: p.candidates.map((c) =>
         c.id === id ? { ...c, plan: { ...c.plan, ...patch } } : c,
       ),
     }));
   };
 
   const removeCandidate = (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      candidates: prev.candidates.filter((c) => c.id !== id),
+    updateActiveProject((p) => ({
+      ...p,
+      candidates: p.candidates.filter((c) => c.id !== id),
     }));
   };
 
+  // 以下はVer1のUIからはまだ呼ばれない、将来の複数プロジェクト切り替えUI向けの
+  // 管理用メソッド（データ構造としては既に対応済み）。
+  const createProject = (name: string) => {
+    const project = createEmptyStickerCharacterProject(name);
+    setWorkspace((prev) => ({
+      ...prev,
+      projects: [...prev.projects, project],
+      activeProjectId: project.id,
+    }));
+    return project;
+  };
+
+  const switchProject = (id: string) => {
+    setWorkspace((prev) =>
+      prev.projects.some((p) => p.id === id)
+        ? { ...prev, activeProjectId: id }
+        : prev,
+    );
+  };
+
+  const renameProject = (id: string, name: string) => {
+    setWorkspace((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) =>
+        p.id === id ? { ...p, name, updatedAt: new Date().toISOString() } : p,
+      ),
+    }));
+  };
+
+  const deleteProject = (id: string) => {
+    setWorkspace((prev) => {
+      const remaining = prev.projects.filter((p) => p.id !== id);
+      if (remaining.length === 0) return prev; // 最低1件は残す
+      return {
+        ...prev,
+        projects: remaining,
+        activeProjectId:
+          prev.activeProjectId === id ? remaining[0].id : prev.activeProjectId,
+      };
+    });
+  };
+
   return {
-    data,
-    loadProject,
+    data: activeProject,
+    workspace,
+    loadWorkspace,
     updateCharacterSettings,
     addLibraryItems,
     updateLibraryItem,
@@ -128,5 +194,9 @@ export function useStickerData() {
     updateCandidate,
     updateCandidatePlan,
     removeCandidate,
+    createProject,
+    switchProject,
+    renameProject,
+    deleteProject,
   };
 }
