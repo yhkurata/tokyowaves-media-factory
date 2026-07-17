@@ -4,6 +4,7 @@ import type { StickerGender, StickerPlan } from "../../types/sticker";
 import { StickerLibraryPanel } from "./StickerLibraryPanel";
 import { StickerInstructionForm } from "./StickerInstructionForm";
 import { StickerCandidateCard } from "./StickerCandidateCard";
+import { StickerSheetPromptPanel } from "./StickerSheetPromptPanel";
 import { dataUrlToBlob } from "../../lib/imageFile";
 import { deliverAsZip, type ExportedFile } from "../../lib/exportDelivery";
 import { estimateBatchCost } from "../../lib/stickerCostEstimate";
@@ -114,6 +115,12 @@ export function StickerProductionScreen({ stickerData }: Props) {
         referenceImageDataUrls={referenceImageDataUrls}
         existingCandidates={existingCandidateSummaries}
         onGenerated={handleGenerated}
+      />
+
+      <StickerSheetPromptPanel
+        characterSettings={data.characterSettings}
+        batches={data.batches}
+        candidates={data.candidates}
       />
 
       <section className="space-y-2">
