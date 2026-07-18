@@ -12,6 +12,7 @@ import { ProjectBar } from "./components/wizard/ProjectBar";
 import { RestorePrompt } from "./components/wizard/RestorePrompt";
 import { useStickerData } from "./state/useStickerData";
 import { StickerProjectBar } from "./components/sticker/StickerProjectBar";
+import { StickerProjectSwitcher } from "./components/sticker/StickerProjectSwitcher";
 import { StickerProductionScreen } from "./components/sticker/StickerProductionScreen";
 import { CharacterSettingsScreen } from "./components/sticker/CharacterSettingsScreen";
 import {
@@ -283,13 +284,21 @@ function App() {
             onLoad={handleLoadProject}
           />
         ) : (
-          <StickerProjectBar
-            snapshot={{
-              projects: stickerData.workspace.projects,
-              activeProjectId: stickerData.workspace.activeProjectId,
-            }}
-            onLoad={stickerData.loadWorkspace}
-          />
+          <div className="flex items-center gap-3">
+            <StickerProjectSwitcher
+              projects={stickerData.workspace.projects}
+              activeProjectId={stickerData.workspace.activeProjectId}
+              onSwitch={stickerData.switchProject}
+              onCreate={(name) => stickerData.createProject(name)}
+            />
+            <StickerProjectBar
+              snapshot={{
+                projects: stickerData.workspace.projects,
+                activeProjectId: stickerData.workspace.activeProjectId,
+              }}
+              onLoad={stickerData.loadWorkspace}
+            />
+          </div>
         )}
       </header>
 
