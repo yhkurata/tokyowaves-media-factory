@@ -290,6 +290,8 @@ function App() {
               activeProjectId={stickerData.workspace.activeProjectId}
               onSwitch={stickerData.switchProject}
               onCreate={(name) => stickerData.createProject(name)}
+              onRename={stickerData.renameProject}
+              onDelete={stickerData.deleteProject}
             />
             <StickerProjectBar
               snapshot={{
