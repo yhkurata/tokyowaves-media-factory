@@ -3,6 +3,7 @@ import type {
   CharacterSettings,
   StickerBatch,
   StickerCandidate,
+  StickerCharacterProject,
 } from "../../types/sticker";
 import { buildSheetGenerationPrompt } from "../../lib/stickerSheetPrompt";
 import { fileToDataUrl } from "../../lib/imageFile";
@@ -13,16 +14,22 @@ type Props = {
   characterSettings: CharacterSettings;
   batches: StickerBatch[];
   candidates: StickerCandidate[];
+  projects: StickerCharacterProject[];
+  activeProjectId: string;
   onAssignCompletedImages: (
     assignments: { id: string; imageDataUrl: string }[],
   ) => void;
+  onCopyBatchToProject: (batchId: string, targetProjectId: string) => void;
 };
 
 export function StickerSheetPromptPanel({
   characterSettings,
   batches,
   candidates,
+  projects,
+  activeProjectId,
   onAssignCompletedImages,
+  onCopyBatchToProject,
 }: Props) {
   const sortedBatches = [...batches].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
@@ -36,6 +43,10 @@ export function StickerSheetPromptPanel({
   const [assignedCount, setAssignedCount] = useState(0);
   const sheetInputRef = useRef<HTMLInputElement>(null);
 
+  const otherProjects = projects.filter((p) => p.id !== activeProjectId);
+  const [copyTargetId, setCopyTargetId] = useState(otherProjects[0]?.id ?? "");
+  const [copyDone, setCopyDone] = useState(false);
+
   if (sortedBatches.length === 0) return null;
 
   const selectedBatch =
@@ -46,6 +57,13 @@ export function StickerSheetPromptPanel({
 
   const handleGenerate = () => {
     setPrompt(buildSheetGenerationPrompt(characterSettings, batchCandidates));
+  };
+
+  const handleCopyToProject = () => {
+    if (!copyTargetId) return;
+    onCopyBatchToProject(selectedBatch.id, copyTargetId);
+    setCopyDone(true);
+    setTimeout(() => setCopyDone(false), 2000);
   };
 
   const handleSheetResultSelected = async (file: File | undefined) => {
@@ -116,6 +134,40 @@ export function StickerSheetPromptPanel({
       </p>
       <p className="text-xs text-gray-500">
         このバッチの候補数：{batchCandidates.length}件
+      </p>
+
+      {otherProjects.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+          <label className="text-xs font-semibold text-gray-600">
+            この企画（セリフ・ポーズ等）を他プロジェクトへコピー
+          </label>
+          <select
+            value={copyTargetId}
+            onChange={(e) => setCopyTargetId(e.target.value)}
+            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+          >
+            {otherProjects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleCopyToProject}
+            className="shrink-0 rounded-md border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+          >
+            コピーする
+          </button>
+          {copyDone && (
+            <span className="text-xs font-semibold text-green-700">
+              コピーしました（追加費用なし）
+            </span>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-gray-500">
+        企画内容（セリフ・感情・ポーズ等）はキャラクターの見た目に依存しないため、コピー先のキャラクター設定と組み合わせてそのままシート生成に使えます。企画生成AIを再度呼ぶ必要はありません。
       </p>
 
       <button

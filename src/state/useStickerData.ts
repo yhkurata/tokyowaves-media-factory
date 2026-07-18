@@ -112,6 +112,58 @@ export function useStickerData() {
     return newCandidates;
   };
 
+  // 既存バッチの企画内容(セリフ・感情・ポーズ等)だけを別プロジェクトへ複製する。
+  // plan の中身はキャラクターの見た目に依存しないため、コピー先プロジェクト
+  // 自身のキャラクター設定と組み合わせればそのまま使え、企画生成APIを
+  // 再度呼ぶ必要がない(=追加費用なし)。baseStickerIds はコピー元プロジェクトの
+  // ライブラリを指すため引き継がずリセットする。
+  const copyBatchToProject = (batchId: string, targetProjectId: string) => {
+    setWorkspace((prev) => {
+      const sourceProject = prev.projects.find((p) =>
+        p.batches.some((b) => b.id === batchId),
+      );
+      const sourceBatch = sourceProject?.batches.find((b) => b.id === batchId);
+      if (!sourceProject || !sourceBatch) return prev;
+      const sourceCandidates = sourceProject.candidates.filter(
+        (c) => c.batchId === batchId,
+      );
+
+      const now = new Date().toISOString();
+      const newBatchId = createId();
+      const newBatch: StickerBatch = {
+        ...sourceBatch,
+        id: newBatchId,
+        baseStickerIds: [],
+        estimatedCostYen: "¥0（既存企画のコピーのため追加費用なし）",
+        createdAt: now,
+      };
+      const newCandidates: StickerCandidate[] = sourceCandidates.map((c) => ({
+        id: createId(),
+        batchId: newBatchId,
+        baseStickerIds: [],
+        plan: c.plan,
+        status: "proposed",
+        completedImageDataUrl: null,
+        lineFormattedImageDataUrl: null,
+        createdAt: now,
+      }));
+
+      return {
+        ...prev,
+        projects: prev.projects.map((p) =>
+          p.id === targetProjectId
+            ? {
+                ...p,
+                batches: [...p.batches, newBatch],
+                candidates: [...p.candidates, ...newCandidates],
+                updatedAt: now,
+              }
+            : p,
+        ),
+      };
+    });
+  };
+
   const updateCandidate = (id: string, patch: Partial<StickerCandidate>) => {
     updateActiveProject((p) => ({
       ...p,
@@ -191,6 +243,7 @@ export function useStickerData() {
     updateLibraryItem,
     removeLibraryItem,
     addBatchWithCandidates,
+    copyBatchToProject,
     updateCandidate,
     updateCandidatePlan,
     removeCandidate,

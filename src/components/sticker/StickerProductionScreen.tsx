@@ -136,6 +136,8 @@ export function StickerProductionScreen({ stickerData }: Props) {
         characterSettings={data.characterSettings}
         batches={data.batches}
         candidates={data.candidates}
+        projects={stickerData.workspace.projects}
+        activeProjectId={stickerData.workspace.activeProjectId}
         onAssignCompletedImages={(assignments) => {
           for (const { id, imageDataUrl } of assignments) {
             stickerData.updateCandidate(id, {
@@ -144,6 +146,7 @@ export function StickerProductionScreen({ stickerData }: Props) {
             });
           }
         }}
+        onCopyBatchToProject={stickerData.copyBatchToProject}
       />
 
       <section className="space-y-2">
