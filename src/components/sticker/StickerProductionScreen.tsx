@@ -1,10 +1,15 @@
 import { useState } from "react";
 import type { useStickerData } from "../../state/useStickerData";
-import type { StickerGender, StickerPlan } from "../../types/sticker";
+import {
+  isCharacterSettingsEmpty,
+  type StickerGender,
+  type StickerPlan,
+} from "../../types/sticker";
 import { StickerLibraryPanel } from "./StickerLibraryPanel";
 import { StickerInstructionForm } from "./StickerInstructionForm";
 import { StickerCandidateCard } from "./StickerCandidateCard";
 import { StickerSheetPromptPanel } from "./StickerSheetPromptPanel";
+import { StepHeader } from "./StepHeader";
 import { dataUrlToBlob } from "../../lib/imageFile";
 import { deliverAsZip, type ExportedFile } from "../../lib/exportDelivery";
 import { estimateBatchCost } from "../../lib/stickerCostEstimate";
@@ -12,6 +17,7 @@ import { convertToLineStickerFormat } from "../../lib/lineStickerFormat";
 
 type Props = {
   stickerData: ReturnType<typeof useStickerData>;
+  onGoToCharacterSettings: () => void;
 };
 
 function sanitizeFilenamePart(text: string): string {
@@ -19,8 +25,14 @@ function sanitizeFilenamePart(text: string): string {
   return safe === "" ? "スタンプ" : safe.slice(0, 20);
 }
 
-export function StickerProductionScreen({ stickerData }: Props) {
+export function StickerProductionScreen({
+  stickerData,
+  onGoToCharacterSettings,
+}: Props) {
   const { data } = stickerData;
+  const characterSettingsMissing = isCharacterSettingsEmpty(
+    data.characterSettings,
+  );
   const [selectedLibraryIds, setSelectedLibraryIds] = useState<string[]>([]);
   const [openCandidateId, setOpenCandidateId] = useState<string | null>(null);
   const [zipError, setZipError] = useState("");
@@ -101,7 +113,7 @@ export function StickerProductionScreen({ stickerData }: Props) {
   ).length;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
       <div>
         <h1 className="text-lg font-bold text-gray-900">スタンプ制作</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -109,28 +121,62 @@ export function StickerProductionScreen({ stickerData }: Props) {
         </p>
       </div>
 
-      <StickerLibraryPanel
-        library={data.library}
-        selectedIds={selectedLibraryIds}
-        onToggleSelect={toggleSelect}
-        onAdd={(items) =>
-          stickerData.addLibraryItems(
-            items as { imageDataUrl: string; label: string; gender: StickerGender }[],
-          )
-        }
-        onUpdateItem={stickerData.updateLibraryItem}
-        onRemove={(id) => {
-          stickerData.removeLibraryItem(id);
-          setSelectedLibraryIds((prev) => prev.filter((x) => x !== id));
-        }}
-      />
+      {characterSettingsMissing ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-yellow-300 bg-yellow-50 p-4">
+          <p className="text-sm font-semibold text-yellow-800">
+            準備：まだキャラクター設定がありません。先に登録してください。
+          </p>
+          <button
+            type="button"
+            onClick={onGoToCharacterSettings}
+            className="shrink-0 rounded-md bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-yellow-400"
+          >
+            キャラクター設定へ
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3">
+          <p className="text-sm font-semibold text-green-800">
+            準備：キャラクター設定は登録済みです。
+          </p>
+          <button
+            type="button"
+            onClick={onGoToCharacterSettings}
+            className="text-xs font-semibold text-green-700 underline hover:no-underline"
+          >
+            内容を確認・修正する
+          </button>
+        </div>
+      )}
 
-      <StickerInstructionForm
-        characterSettings={data.characterSettings}
-        referenceImageDataUrls={referenceImageDataUrls}
-        existingCandidates={existingCandidateSummaries}
-        onGenerated={handleGenerated}
-      />
+      <div className="space-y-3">
+        <StepHeader
+          step={1}
+          title="企画する"
+          description="参考画像を選び（任意）、自由な指示からスタンプ案をAIに考えてもらいます。"
+        />
+        <StickerLibraryPanel
+          library={data.library}
+          selectedIds={selectedLibraryIds}
+          onToggleSelect={toggleSelect}
+          onAdd={(items) =>
+            stickerData.addLibraryItems(
+              items as { imageDataUrl: string; label: string; gender: StickerGender }[],
+            )
+          }
+          onUpdateItem={stickerData.updateLibraryItem}
+          onRemove={(id) => {
+            stickerData.removeLibraryItem(id);
+            setSelectedLibraryIds((prev) => prev.filter((x) => x !== id));
+          }}
+        />
+        <StickerInstructionForm
+          characterSettings={data.characterSettings}
+          referenceImageDataUrls={referenceImageDataUrls}
+          existingCandidates={existingCandidateSummaries}
+          onGenerated={handleGenerated}
+        />
+      </div>
 
       <StickerSheetPromptPanel
         characterSettings={data.characterSettings}
@@ -149,64 +195,71 @@ export function StickerProductionScreen({ stickerData }: Props) {
         onCopyBatchToProject={stickerData.copyBatchToProject}
       />
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-700">
-            スタンプ候補一覧（{data.candidates.length}件）
-          </h2>
-          <button
-            type="button"
-            onClick={() => void handleZipExport()}
-            disabled={completedCount === 0 || isZipping}
-            className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isZipping
-              ? "変換・出力中..."
-              : `完成画像を一括変換してZIP保存（${completedCount}件）`}
-          </button>
-        </div>
-        {zipError && (
-          <p className="text-xs font-semibold text-red-600">{zipError}</p>
-        )}
-
-        {data.candidates.length === 0 ? (
-          <p className="text-xs text-gray-400">
-            まだ候補がありません。上のフォームから企画を生成してください。
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {data.candidates.map((candidate) => (
-              <StickerCandidateCard
-                key={candidate.id}
-                candidate={candidate}
-                isOpen={openCandidateId === candidate.id}
-                onToggle={() =>
-                  setOpenCandidateId(
-                    openCandidateId === candidate.id ? null : candidate.id,
-                  )
-                }
-                onUpdatePlan={(patch) =>
-                  stickerData.updateCandidatePlan(candidate.id, patch)
-                }
-                onUpdateStatus={(status) =>
-                  stickerData.updateCandidate(candidate.id, { status })
-                }
-                onUploadCompletedImage={(dataUrl) =>
-                  stickerData.updateCandidate(candidate.id, {
-                    completedImageDataUrl: dataUrl,
-                  })
-                }
-                onSetLineFormattedImage={(dataUrl) =>
-                  stickerData.updateCandidate(candidate.id, {
-                    lineFormattedImageDataUrl: dataUrl,
-                  })
-                }
-                onDelete={() => stickerData.removeCandidate(candidate.id)}
-              />
-            ))}
+      <div className="space-y-3">
+        <StepHeader
+          step={4}
+          title="完成品を確認・保存する"
+          description="完成画像をLINEの規定サイズに変換し、まとめてZIPで保存します。"
+        />
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-700">
+              スタンプ候補一覧（{data.candidates.length}件）
+            </h3>
+            <button
+              type="button"
+              onClick={() => void handleZipExport()}
+              disabled={completedCount === 0 || isZipping}
+              className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isZipping
+                ? "変換・出力中..."
+                : `完成画像を一括変換してZIP保存（${completedCount}件）`}
+            </button>
           </div>
-        )}
-      </section>
+          {zipError && (
+            <p className="text-xs font-semibold text-red-600">{zipError}</p>
+          )}
+
+          {data.candidates.length === 0 ? (
+            <p className="text-xs text-gray-400">
+              まだ候補がありません。STEP1で企画を生成してください。
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {data.candidates.map((candidate) => (
+                <StickerCandidateCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  isOpen={openCandidateId === candidate.id}
+                  onToggle={() =>
+                    setOpenCandidateId(
+                      openCandidateId === candidate.id ? null : candidate.id,
+                    )
+                  }
+                  onUpdatePlan={(patch) =>
+                    stickerData.updateCandidatePlan(candidate.id, patch)
+                  }
+                  onUpdateStatus={(status) =>
+                    stickerData.updateCandidate(candidate.id, { status })
+                  }
+                  onUploadCompletedImage={(dataUrl) =>
+                    stickerData.updateCandidate(candidate.id, {
+                      completedImageDataUrl: dataUrl,
+                    })
+                  }
+                  onSetLineFormattedImage={(dataUrl) =>
+                    stickerData.updateCandidate(candidate.id, {
+                      lineFormattedImageDataUrl: dataUrl,
+                    })
+                  }
+                  onDelete={() => stickerData.removeCandidate(candidate.id)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

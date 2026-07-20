@@ -107,8 +107,8 @@ export function StickerInstructionForm({
       </div>
 
       {characterSettingsMissing ? (
-        <p className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
-          まず参考画像を登録してください（「キャラクター設定」タブから既存スタンプ画像をアップロードし、キャラクター設定を作成できます）。
+        <p className="text-xs font-semibold text-yellow-700">
+          ※ 上の「キャラクター設定」を先に済ませてください。
         </p>
       ) : requestState !== "confirming" ? (
         <button

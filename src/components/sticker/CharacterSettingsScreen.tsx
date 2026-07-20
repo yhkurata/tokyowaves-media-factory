@@ -89,10 +89,10 @@ function CharacterAnalysisPanel({
     <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 p-4">
       <div>
         <p className="text-sm font-bold text-blue-900">
-          既存スタンプ画像からAIで自動解析（初回はここから）
+          キャラクターのイラストからAIで自動解析（初回はここから）
         </p>
         <p className="mt-1 text-xs text-blue-800">
-          既存のWAVESスタンプ画像を1枚以上アップロードすると、キャラクター特徴・顔・髪型・帽子・ロゴ・配色・絵柄・変えてはいけない要素をAIが解析し、下のフォームに自動入力します。内容は後から自由に修正できます。
+          キャラクターが写っている画像を1枚以上アップロードすると、キャラクター特徴・顔・髪型・帽子・ロゴ・配色・絵柄・変えてはいけない要素をAIが解析し、下のフォームに自動入力します。既存のスタンプ画像に限らず、イラストや設定資料・写真などでも構いません。内容は後から自由に修正できます。
         </p>
       </div>
 

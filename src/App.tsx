@@ -391,7 +391,10 @@ function App() {
         )}
 
         {mode === "sticker" && (
-          <StickerProductionScreen stickerData={stickerData} />
+          <StickerProductionScreen
+            stickerData={stickerData}
+            onGoToCharacterSettings={() => setMode("character-settings")}
+          />
         )}
 
         {mode === "character-settings" && (

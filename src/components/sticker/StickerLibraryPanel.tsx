@@ -89,7 +89,7 @@ export function StickerLibraryPanel({
     <section className="space-y-3 rounded-md border border-gray-200 bg-white p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-gray-700">
-          既存スタンプライブラリ
+          参考画像ライブラリ
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -148,7 +148,7 @@ export function StickerLibraryPanel({
 
       {library.length === 0 ? (
         <p className="text-xs text-gray-400">
-          まだスタンプが登録されていません。既存のWAVESスタンプ画像を追加してください。
+          まだ参考画像が登録されていません。既存のスタンプに限らず、参考にしたい画像を追加してください。
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

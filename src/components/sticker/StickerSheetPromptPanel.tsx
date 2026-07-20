@@ -9,6 +9,7 @@ import { buildSheetGenerationPrompt } from "../../lib/stickerSheetPrompt";
 import { fileToDataUrl } from "../../lib/imageFile";
 import { splitStickerSheet } from "../../lib/stickerSheetSplit";
 import { CopyableBlock } from "./CopyableBlock";
+import { StepHeader } from "./StepHeader";
 
 type Props = {
   characterSettings: CharacterSettings;
@@ -98,129 +99,135 @@ export function StickerSheetPromptPanel({
   };
 
   return (
-    <section className="space-y-3 rounded-md border border-gray-200 bg-white p-4">
-      <h2 className="text-sm font-bold text-gray-700">
-        まとめてシート画像を生成するプロンプト
-      </h2>
-      <p className="text-xs text-gray-500">
-        候補ごとに1件ずつChatGPTへ依頼する代わりに、選んだ企画バッチの内容を
-        まとめて1枚のシート画像として生成してもらうための指示文を作成します
-        （すでに生成済みの内容から組み立てるだけなので、追加費用はかかりません）。
-      </p>
+    <>
+      <div className="space-y-3">
+        <StepHeader
+          step={2}
+          title="ChatGPTで画像を作る"
+          description="STEP1の企画内容から、ChatGPTに貼り付ける指示文を作成します。"
+        />
+        <section className="space-y-3 rounded-md border border-gray-200 bg-white p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">
+              対象の企画バッチ
+            </label>
+            <select
+              value={selectedBatch.id}
+              onChange={(e) => {
+                setSelectedBatchId(e.target.value);
+                setPrompt("");
+              }}
+              className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              {sortedBatches.map((batch) => (
+                <option key={batch.id} value={batch.id}>
+                  {new Date(batch.createdAt).toLocaleString("ja-JP")}（
+                  {batch.requestedCount}件）
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-sm font-medium text-gray-700">
-          対象の企画バッチ
-        </label>
-        <select
-          value={selectedBatch.id}
-          onChange={(e) => {
-            setSelectedBatchId(e.target.value);
-            setPrompt("");
-          }}
-          className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-        >
-          {sortedBatches.map((batch) => (
-            <option key={batch.id} value={batch.id}>
-              {new Date(batch.createdAt).toLocaleString("ja-JP")}（
-              {batch.requestedCount}件）
-            </option>
-          ))}
-        </select>
-      </div>
+          <p className="whitespace-pre-wrap text-xs text-gray-500">
+            指示内容：{selectedBatch.instruction}
+          </p>
+          <p className="text-xs text-gray-500">
+            このバッチの候補数：{batchCandidates.length}件
+          </p>
 
-      <p className="whitespace-pre-wrap text-xs text-gray-500">
-        指示内容：{selectedBatch.instruction}
-      </p>
-      <p className="text-xs text-gray-500">
-        このバッチの候補数：{batchCandidates.length}件
-      </p>
-
-      {otherProjects.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-          <label className="text-xs font-semibold text-gray-600">
-            この企画（セリフ・ポーズ等）を他プロジェクトへコピー
-          </label>
-          <select
-            value={copyTargetId}
-            onChange={(e) => setCopyTargetId(e.target.value)}
-            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
-          >
-            {otherProjects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
           <button
             type="button"
-            onClick={handleCopyToProject}
-            className="shrink-0 rounded-md border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+            onClick={handleGenerate}
+            disabled={batchCandidates.length === 0}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            コピーする
+            シート生成プロンプトを作成
           </button>
-          {copyDone && (
-            <span className="text-xs font-semibold text-green-700">
-              コピーしました（追加費用なし）
-            </span>
+
+          {prompt && (
+            <CopyableBlock
+              label="ChatGPT貼り付け用プロンプト（英語）"
+              text={prompt}
+            />
           )}
-        </div>
-      )}
-      <p className="text-xs text-gray-500">
-        企画内容（セリフ・感情・ポーズ等）はキャラクターの見た目に依存しないため、コピー先のキャラクター設定と組み合わせてそのままシート生成に使えます。企画生成AIを再度呼ぶ必要はありません。
-      </p>
 
-      <button
-        type="button"
-        onClick={handleGenerate}
-        disabled={batchCandidates.length === 0}
-        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
-      >
-        シート生成プロンプトを作成
-      </button>
-
-      {prompt && (
-        <CopyableBlock label="ChatGPT貼り付け用プロンプト（英語）" text={prompt} />
-      )}
-
-      <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-        <p className="text-xs font-bold text-gray-600">
-          ChatGPTで生成したシート画像を、このバッチの{batchCandidates.length}件の完成画像として登録
-        </p>
-        <p className="text-xs text-gray-500">
-          「シート画像を分割して追加」（ライブラリ用）とは別に、生成されたシートを
-          4×4に分割し、このバッチの各候補（プロンプトと同じ並び順）の完成画像として
-          そのまま登録します。
-        </p>
-        <button
-          type="button"
-          onClick={() => sheetInputRef.current?.click()}
-          disabled={isAssigning || batchCandidates.length !== 16}
-          className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-gray-300"
-        >
-          {isAssigning ? "分割・登録中..." : "シート画像をアップロードして完成画像に登録"}
-        </button>
-        <input
-          ref={sheetInputRef}
-          type="file"
-          accept="image/png,image/jpeg"
-          className="hidden"
-          onChange={(e) => void handleSheetResultSelected(e.target.files?.[0])}
-        />
-        {batchCandidates.length !== 16 && (
-          <p className="text-xs text-yellow-700">
-            このバッチは{batchCandidates.length}件のため、4×4固定の分割とは件数が一致しません。
-          </p>
-        )}
-        {assignError && (
-          <p className="text-xs font-semibold text-red-600">{assignError}</p>
-        )}
-        {assignedCount > 0 && (
-          <p className="text-xs font-semibold text-green-700">
-            {assignedCount}件の完成画像を登録しました。
-          </p>
-        )}
+          {otherProjects.length > 0 && (
+            <div className="space-y-1.5 rounded-md border border-gray-200 bg-gray-50 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs font-semibold text-gray-600">
+                  この企画（セリフ・ポーズ等）を他プロジェクトへコピー
+                </label>
+                <select
+                  value={copyTargetId}
+                  onChange={(e) => setCopyTargetId(e.target.value)}
+                  className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+                >
+                  {otherProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleCopyToProject}
+                  className="shrink-0 rounded-md border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                >
+                  コピーする
+                </button>
+                {copyDone && (
+                  <span className="text-xs font-semibold text-green-700">
+                    コピーしました（追加費用なし）
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                企画内容はキャラクターの見た目に依存しないため、コピー先のキャラクター設定と組み合わせてそのまま使えます。企画生成AIを再度呼ぶ必要はありません。
+              </p>
+            </div>
+          )}
+        </section>
       </div>
-    </section>
+
+      <div className="space-y-3">
+        <StepHeader
+          step={3}
+          title="画像を取り込む"
+          description="ChatGPTで生成したシート画像をアップロードすると、自動で分割して各候補の完成画像に登録します。"
+        />
+        <section className="space-y-2 rounded-md border border-gray-200 bg-white p-4">
+          <button
+            type="button"
+            onClick={() => sheetInputRef.current?.click()}
+            disabled={isAssigning || batchCandidates.length !== 16}
+            className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            {isAssigning
+              ? "分割・登録中..."
+              : "シート画像をアップロードして完成画像に登録"}
+          </button>
+          <input
+            ref={sheetInputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={(e) => void handleSheetResultSelected(e.target.files?.[0])}
+          />
+          {batchCandidates.length !== 16 && (
+            <p className="text-xs text-yellow-700">
+              このバッチは{batchCandidates.length}件のため、4×4固定の分割とは件数が一致しません。
+            </p>
+          )}
+          {assignError && (
+            <p className="text-xs font-semibold text-red-600">{assignError}</p>
+          )}
+          {assignedCount > 0 && (
+            <p className="text-xs font-semibold text-green-700">
+              {assignedCount}件の完成画像を登録しました。
+            </p>
+          )}
+        </section>
+      </div>
+    </>
   );
 }
