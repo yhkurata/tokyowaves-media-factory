@@ -15,6 +15,8 @@ import { StickerProjectBar } from "./components/sticker/StickerProjectBar";
 import { StickerProjectSwitcher } from "./components/sticker/StickerProjectSwitcher";
 import { StickerProductionScreen } from "./components/sticker/StickerProductionScreen";
 import { CharacterSettingsScreen } from "./components/sticker/CharacterSettingsScreen";
+import { useExpeditionGuideData } from "./state/useExpeditionGuideData";
+import { ExpeditionGuideScreen } from "./components/expedition/ExpeditionGuideScreen";
 import {
   buildBracketData,
   buildLeagueGroups,
@@ -36,12 +38,17 @@ import type { Theme } from "./components/preview/theme";
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 
-type AppMode = "tournament" | "sticker" | "character-settings";
+type AppMode =
+  | "tournament"
+  | "sticker"
+  | "character-settings"
+  | "expedition-guide";
 
 const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "tournament", label: "大会画像作成" },
   { id: "sticker", label: "スタンプ制作" },
   { id: "character-settings", label: "キャラクター設定" },
+  { id: "expedition-guide", label: "遠征要項AI" },
 ];
 
 function snapshotHasAnyData(data: ProjectData): boolean {
@@ -82,6 +89,7 @@ interface AnalysisSummary {
 function App() {
   const [mode, setMode] = useState<AppMode>("tournament");
   const stickerData = useStickerData();
+  const expeditionGuideData = useExpeditionGuideData();
 
   const [wizardStep, setWizardStep] = useState<WizardStep>("upload");
   const [analysisError, setAnalysisError] = useState("");
@@ -272,7 +280,7 @@ function App() {
         <h1 className="text-xl font-bold text-gray-900">
           TokyoWAVES Media Factory
         </h1>
-        {mode === "tournament" ? (
+        {mode === "tournament" && (
           <ProjectBar
             snapshot={{
               tournament,
@@ -283,7 +291,8 @@ function App() {
             }}
             onLoad={handleLoadProject}
           />
-        ) : (
+        )}
+        {(mode === "sticker" || mode === "character-settings") && (
           <div className="flex flex-wrap items-center gap-3">
             <StickerProjectSwitcher
               projects={stickerData.workspace.projects}
@@ -402,6 +411,10 @@ function App() {
             settings={stickerData.data.characterSettings}
             onUpdate={stickerData.updateCharacterSettings}
           />
+        )}
+
+        {mode === "expedition-guide" && (
+          <ExpeditionGuideScreen data={expeditionGuideData} />
         )}
       </main>
     </div>

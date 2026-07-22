@@ -1,0 +1,97 @@
+/*
+ * 保護者向け案内の印刷（A4）テンプレート共通スタイル。
+ * src/components/print/PrintDocumentTemplate.tsx から使用する。
+ * 遠征要項AI以外の今後の案内AI機能も、同じ .print-document クラスを
+ * 使い回すことを前提にしている。
+ */
+
+.print-document {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #12163a;
+  font-family:
+    "Noto Sans JP",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Hiragino Sans",
+    sans-serif;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.print-document__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.print-document__meta {
+  text-align: right;
+  font-size: 12px;
+  color: #4b5563;
+  white-space: pre-wrap;
+}
+
+.print-document__title {
+  margin: 10mm 0 8mm;
+  padding-bottom: 4mm;
+  border-bottom: 3px solid #0d1230;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.print-document__section {
+  margin-bottom: 7mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-document__heading {
+  display: inline-block;
+  margin-bottom: 3mm;
+  border-radius: 4px;
+  background: #0d1230;
+  padding: 2mm 5mm;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.print-document__body {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 13.5px;
+  line-height: 1.9;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-document,
+  .print-document * {
+    visibility: visible;
+  }
+
+  .print-document {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    min-height: auto;
+    margin: 0;
+    box-shadow: none;
+  }
+}
