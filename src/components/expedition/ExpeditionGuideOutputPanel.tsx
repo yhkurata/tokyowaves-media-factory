@@ -1,5 +1,5 @@
 import type {
-  ExpeditionGuideEnhanceMode,
+  ExpeditionGuideInput,
   ExpeditionGuideOutput,
 } from "../../types/expeditionGuide";
 import { CopyableBlock } from "../sticker/CopyableBlock";
@@ -7,14 +7,27 @@ import { PrintDocumentTemplate } from "../print/PrintDocumentTemplate";
 import { ExpeditionGuideEnhancePanel } from "./ExpeditionGuideEnhancePanel";
 
 type Props = {
+  fields: ExpeditionGuideInput;
   output: ExpeditionGuideOutput;
-  onEnhance: (mode: ExpeditionGuideEnhanceMode) => Promise<void>;
+  isAdmin: boolean;
+  onApplyEnhance: (patch: Partial<ExpeditionGuideOutput>) => void;
 };
 
-export function ExpeditionGuideOutputPanel({ output, onEnhance }: Props) {
+export function ExpeditionGuideOutputPanel({
+  fields,
+  output,
+  isAdmin,
+  onApplyEnhance,
+}: Props) {
   return (
     <div className="space-y-6">
-      <ExpeditionGuideEnhancePanel onEnhance={onEnhance} />
+      {isAdmin && (
+        <ExpeditionGuideEnhancePanel
+          fields={fields}
+          currentOutput={output}
+          onApply={onApplyEnhance}
+        />
+      )}
 
       <div className="rounded-md border border-gray-200 bg-white p-4">
         <CopyableBlock label="① LINE用文章" text={output.line} />

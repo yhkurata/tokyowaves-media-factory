@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { extractApiPlugin } from './server/viteExtractPlugin'
 import { stickerApiPlugin } from './server/viteStickerApiPlugin'
-import { expeditionGuideApiPlugin } from './server/viteExpeditionGuideApiPlugin'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -17,7 +16,6 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       extractApiPlugin(env.ANTHROPIC_API_KEY),
       stickerApiPlugin(env.ANTHROPIC_API_KEY),
-      expeditionGuideApiPlugin(env.ANTHROPIC_API_KEY),
     ],
   }
 })

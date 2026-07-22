@@ -1,6 +1,6 @@
 import type { useExpeditionGuideData } from "../../state/useExpeditionGuideData";
-import type { ExpeditionGuideEnhanceMode } from "../../types/expeditionGuide";
-import { enhanceExpeditionGuide } from "../../lib/expeditionGuideApi";
+import type { ExpeditionGuideOutput } from "../../types/expeditionGuide";
+import { isAdminMode } from "../../lib/adminMode";
 import { StepHeader } from "../sticker/StepHeader";
 import { ExpeditionGuideForm } from "./ExpeditionGuideForm";
 import { ExpeditionGuideOutputPanel } from "./ExpeditionGuideOutputPanel";
@@ -10,10 +10,11 @@ type Props = {
 };
 
 export function ExpeditionGuideScreen({ data }: Props) {
-  const handleEnhance = async (mode: ExpeditionGuideEnhanceMode) => {
+  const isAdmin = isAdminMode();
+
+  const handleApplyEnhance = (patch: Partial<ExpeditionGuideOutput>) => {
     if (!data.output) return;
-    const next = await enhanceExpeditionGuide(data.input, data.output, mode);
-    data.setOutput(next);
+    data.setOutput({ ...data.output, ...patch });
   };
 
   return (
@@ -38,12 +39,18 @@ export function ExpeditionGuideScreen({ data }: Props) {
           <StepHeader
             step={2}
             title="出力"
-            description="LINE・メール・印刷用（A4）を確認・コピーできます。必要ならAIで内容を強化できます。"
+            description={
+              isAdmin
+                ? "LINE・メール・印刷用（A4）を確認・コピーできます。管理者用のAI強化パネルも使えます。"
+                : "LINE・メール・印刷用（A4）を確認・コピーできます。"
+            }
           />
           <div className="mt-3">
             <ExpeditionGuideOutputPanel
+              fields={data.input}
               output={data.output}
-              onEnhance={handleEnhance}
+              isAdmin={isAdmin}
+              onApplyEnhance={handleApplyEnhance}
             />
           </div>
         </div>

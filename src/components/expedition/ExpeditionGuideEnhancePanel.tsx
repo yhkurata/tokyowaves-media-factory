@@ -1,5 +1,12 @@
 import { useState } from "react";
-import type { ExpeditionGuideEnhanceMode } from "../../types/expeditionGuide";
+import type {
+  ExpeditionGuideEnhanceMode,
+  ExpeditionGuideInput,
+  ExpeditionGuideOutput,
+} from "../../types/expeditionGuide";
+import { buildExpeditionGuideEnhancePrompt } from "../../lib/expeditionGuideEnhancePrompt";
+import { parseExpeditionGuideEnhanceReply } from "../../lib/expeditionGuideEnhanceParse";
+import { CopyableBlock } from "../sticker/CopyableBlock";
 
 const ENHANCE_OPTIONS: { mode: ExpeditionGuideEnhanceMode; label: string }[] = [
   { mode: "improve", label: "文章を自然に改善" },
@@ -9,48 +16,99 @@ const ENHANCE_OPTIONS: { mode: ExpeditionGuideEnhanceMode; label: string }[] = [
 ];
 
 type Props = {
-  onEnhance: (mode: ExpeditionGuideEnhanceMode) => Promise<void>;
+  fields: ExpeditionGuideInput;
+  currentOutput: ExpeditionGuideOutput;
+  onApply: (patch: Partial<ExpeditionGuideOutput>) => void;
 };
 
-// 遠征要項AIの唯一のAI呼び出し窓口。基本の要項生成はテンプレートエンジンで
-// APIを使わずに完結するため、ここのボタンを押したときだけ料金が発生する。
-export function ExpeditionGuideEnhancePanel({ onEnhance }: Props) {
-  const [loadingMode, setLoadingMode] =
-    useState<ExpeditionGuideEnhanceMode | null>(null);
+// 管理者限定のAI強化パネル。サーバーAPIは一切呼ばない：
+// コピー用プロンプトを表示し、管理者がClaude.ai/ChatGPTの無料Webチャットに
+// 自分で貼り付けて実行し、返ってきた回答をこのパネルに貼り戻す方式。
+export function ExpeditionGuideEnhancePanel({
+  fields,
+  currentOutput,
+  onApply,
+}: Props) {
+  const [prompt, setPrompt] = useState("");
+  const [reply, setReply] = useState("");
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const handleClick = async (mode: ExpeditionGuideEnhanceMode) => {
-    setLoadingMode(mode);
+  const handleSelectMode = (mode: ExpeditionGuideEnhanceMode) => {
+    setPrompt(buildExpeditionGuideEnhancePrompt(fields, currentOutput, mode));
+    setMessage("");
     setError("");
-    try {
-      await onEnhance(mode);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "強化に失敗しました。");
-    } finally {
-      setLoadingMode(null);
+  };
+
+  const handleApplyReply = () => {
+    const { output, matchedKeys } = parseExpeditionGuideEnhanceReply(reply);
+    if (matchedKeys.length === 0) {
+      setError(
+        "貼り付けた内容から形式を認識できませんでした。AIの回答をそのまま（前後の説明文を含めずに）貼り付けてください。",
+      );
+      setMessage("");
+      return;
     }
+    onApply(output);
+    setError("");
+    setMessage(`反映しました：${matchedKeys.join("・")}`);
+    setReply("");
   };
 
   return (
-    <section className="space-y-2 rounded-md border border-blue-200 bg-blue-50 p-4">
-      <p className="text-sm font-semibold text-blue-900">AIで強化する（任意）</p>
-      <p className="text-xs text-blue-700">
-        押すたびにClaude APIを呼び出します（料金が発生します）。3形式すべてに反映されます。
+    <section className="space-y-3 rounded-md border border-purple-300 bg-purple-50 p-4">
+      <p className="text-sm font-semibold text-purple-900">
+        AIで強化する（管理者用）
       </p>
+      <p className="text-xs text-purple-700">
+        APIは使いません。下のプロンプトをコピーしてClaude.aiまたはChatGPT（無料のWebチャット）に貼り付けて実行し、返ってきた回答をコピーしてこのページに貼り戻してください。
+      </p>
+
       <div className="flex flex-wrap gap-2">
         {ENHANCE_OPTIONS.map(({ mode, label }) => (
           <button
             key={mode}
             type="button"
-            onClick={() => void handleClick(mode)}
-            disabled={loadingMode !== null}
-            className="rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => handleSelectMode(mode)}
+            className="rounded-md border border-purple-300 bg-white px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100"
           >
-            {loadingMode === mode ? "実行中..." : label}
+            {label}
           </button>
         ))}
       </div>
-      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+
+      {prompt && (
+        <>
+          <CopyableBlock label="① コピーしてClaude.ai / ChatGPTに貼り付ける" text={prompt} />
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-purple-900">
+              ② AIの回答をここに貼り付ける
+            </label>
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              rows={6}
+              placeholder="===LINE=== から始まるAIの回答をそのまま貼り付けてください"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:border-purple-500 focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleApplyReply}
+            disabled={reply.trim() === ""}
+            className="rounded-md bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            反映する
+          </button>
+
+          {message && (
+            <p className="text-xs font-semibold text-green-700">{message}</p>
+          )}
+          {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+        </>
+      )}
     </section>
   );
 }
