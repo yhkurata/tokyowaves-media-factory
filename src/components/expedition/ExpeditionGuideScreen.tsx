@@ -17,6 +17,11 @@ export function ExpeditionGuideScreen({ data }: Props) {
     data.setOutput({ ...data.output, ...patch });
   };
 
+  const handleEditField = (field: "line" | "email", value: string) => {
+    if (!data.output) return;
+    data.setOutput({ ...data.output, [field]: value });
+  };
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
       <div>
@@ -52,6 +57,7 @@ export function ExpeditionGuideScreen({ data }: Props) {
               output={data.output}
               isAdmin={isAdmin}
               onApplyEnhance={handleApplyEnhance}
+              onEditField={handleEditField}
             />
           </div>
         </div>

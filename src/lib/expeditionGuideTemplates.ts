@@ -83,8 +83,16 @@ function saveRawTemplates(templates: ExpeditionGuideTemplate[]) {
   }
 }
 
+// 初回だけシードテンプレート（大宮公園遠征・埼玉栄遠征）をlocalStorageに書き込み、
+// 以降は他のテンプレートと同じように編集・削除できる1つの配列として扱う
+// （テンプレートの管理はユーザー自身が行っていく前提のため、コード側での
+// 自動的な内容更新は行わない）。
 export function loadExpeditionGuideTemplates(): ExpeditionGuideTemplate[] {
-  return loadRawTemplates() ?? buildSeedTemplates();
+  const saved = loadRawTemplates();
+  if (saved) return saved;
+  const seeds = buildSeedTemplates();
+  saveRawTemplates(seeds);
+  return seeds;
 }
 
 export function saveExpeditionGuideTemplate(
@@ -103,6 +111,27 @@ export function saveExpeditionGuideTemplate(
       updatedAt: new Date().toISOString(),
     },
   ];
+  saveRawTemplates(next);
+  return next;
+}
+
+export function updateExpeditionGuideTemplate(
+  id: string,
+  input: ExpeditionGuideInput,
+): ExpeditionGuideTemplate[] {
+  const current = loadExpeditionGuideTemplates();
+  const next = current.map((t) =>
+    t.id === id ? { ...t, input, updatedAt: new Date().toISOString() } : t,
+  );
+  saveRawTemplates(next);
+  return next;
+}
+
+export function deleteExpeditionGuideTemplate(
+  id: string,
+): ExpeditionGuideTemplate[] {
+  const current = loadExpeditionGuideTemplates();
+  const next = current.filter((t) => t.id !== id);
   saveRawTemplates(next);
   return next;
 }
