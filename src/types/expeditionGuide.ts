@@ -30,6 +30,17 @@ const DEFAULT_EXTRA_ITEMS =
   "水着・セーム（タオル）・ゴーグル・キャップ（試合帽子　白×１　青×１）・ボール×１・スイミングキャップ・ジャージ（プールサイド用）";
 const DEFAULT_NOTES =
   "◎乗り換えをスムーズに行えるようにSuicaの用意をお願いいたします。\n◎移動時は必ず運動靴を履いてください。";
+const DEFAULT_FEE = "1,000円\n（内訳）スタッフ費用・雑費等";
+
+// 「対象」の選択肢（学年×性別）。複数選択して「・」区切りで組み立てる。
+export const TARGET_GROUP_OPTIONS = [
+  "小学生男子",
+  "小学生女子",
+  "中学生男子",
+  "中学生女子",
+  "高校生男子",
+  "高校生女子",
+] as const;
 
 export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
   return {
@@ -44,7 +55,7 @@ export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
     dismissalTime: "",
     venue: "",
     accommodation: "",
-    fee: "",
+    fee: DEFAULT_FEE,
     extraItems: DEFAULT_EXTRA_ITEMS,
     lunch: "",
     notes: DEFAULT_NOTES,

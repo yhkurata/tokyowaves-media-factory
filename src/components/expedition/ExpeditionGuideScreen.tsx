@@ -29,6 +29,7 @@ export function ExpeditionGuideScreen({ data }: Props) {
           <ExpeditionGuideForm
             input={data.input}
             onUpdateField={data.updateField}
+            onLoadTemplate={data.loadTemplate}
             onGenerate={data.generate}
           />
         </div>

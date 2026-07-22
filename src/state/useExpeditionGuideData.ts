@@ -9,6 +9,7 @@ import {
   saveExpeditionGuideSnapshot,
 } from "../lib/expeditionGuideAutoSave";
 import { buildExpeditionGuideOutput } from "../lib/expeditionGuideTemplate";
+import { recordExpeditionGuideFieldHistory } from "../lib/expeditionGuideFieldHistory";
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 
@@ -44,13 +45,25 @@ export function useExpeditionGuideData() {
     setInput((prev) => ({ ...prev, [field]: value }));
   };
 
+  // テンプレート選択時にフォーム全体をまるごと差し替える。
+  const loadTemplate = (templateInput: ExpeditionGuideInput) => {
+    setInput(templateInput);
+  };
+
+  // 会場・集合場所・解散場所・時間・引率者は、要項を作成するたびに履歴として
+  // 覚えておき、次回以降ワンタップで選べる候補にする。
   const generate = () => {
     setOutput(buildExpeditionGuideOutput(input));
+    recordExpeditionGuideFieldHistory("venue", input.venue);
+    recordExpeditionGuideFieldHistory("meetingPlace", input.meetingPlace);
+    recordExpeditionGuideFieldHistory("dismissalTime", input.dismissalTime);
+    recordExpeditionGuideFieldHistory("leaders", input.leaders);
   };
 
   return {
     input,
     updateField,
+    loadTemplate,
     output,
     generate,
     setOutput,
