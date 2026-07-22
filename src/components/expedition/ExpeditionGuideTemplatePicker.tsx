@@ -25,7 +25,18 @@ export function ExpeditionGuideTemplatePicker({
 
   const handleSelect = (id: string) => {
     const template = templates.find((t) => t.id === id);
-    if (template) onLoadTemplate(template.input);
+    if (!template) return;
+    // 期日・練習時間は毎回変わりうる／修正忘れが起きやすいため、
+    // テンプレートを選んでも必ず空欄に戻し、その都度入力し直してもらう。
+    // 持ち物・注意事項は場所によらず固定の定型文として運用するため、
+    // テンプレートの内容で上書きせず今の入力をそのまま維持する。
+    onLoadTemplate({
+      ...template.input,
+      schedule: "",
+      practiceTime: "",
+      extraItems: currentInput.extraItems,
+      notes: currentInput.notes,
+    });
   };
 
   const handleSave = () => {

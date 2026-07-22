@@ -22,6 +22,7 @@ const FIELD_LABELS: Record<keyof ExpeditionGuideInput, string> = {
   meetingTime: "集合時間",
   targetGroup: "対象",
   leaders: "引率者",
+  practicePartner: "練習相手",
   practiceTime: "練習時間",
   departureTime: "出発時間",
   dismissalTime: "解散場所・時間",

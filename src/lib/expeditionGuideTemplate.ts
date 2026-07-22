@@ -31,6 +31,7 @@ export function buildExpeditionGuideOutput(
 
   const targetGroup = input.targetGroup.trim();
   const leaders = input.leaders.trim();
+  const practicePartner = input.practicePartner.trim();
   const practiceTime = input.practiceTime.trim();
   const departureTime = input.departureTime.trim();
   const dismissalTime = input.dismissalTime.trim();
@@ -49,6 +50,7 @@ export function buildExpeditionGuideOutput(
     meetingTime,
     targetGroup,
     leaders,
+    practicePartner,
     practiceTime,
     departureTime,
     dismissalTime,
@@ -77,6 +79,7 @@ interface TemplateFields {
   meetingTime: string;
   targetGroup: string;
   leaders: string;
+  practicePartner: string;
   practiceTime: string;
   departureTime: string;
   dismissalTime: string;
@@ -99,6 +102,7 @@ function buildLineText(f: TemplateFields): string {
     `🏟 会場：${f.venue}`,
     f.targetGroup ? `👥 対象：${f.targetGroup}` : "",
     f.leaders ? `🧑‍🏫 引率：${f.leaders}` : "",
+    f.practicePartner ? `🤝 練習相手：${f.practicePartner}` : "",
     f.extraItems ? `🎒 持ち物：${f.extraItems}` : "",
     f.practiceTime ? `🏊 練習時間：${f.practiceTime}` : "",
     `📍 集合場所：${f.meetingPlace}`,
@@ -124,6 +128,7 @@ function buildEmailText(f: TemplateFields): string {
     `【会場】\n${f.venue}`,
     f.targetGroup ? `【対象】\n${f.targetGroup}` : "",
     f.leaders ? `【引率】\n${f.leaders}` : "",
+    f.practicePartner ? `【練習相手】\n${f.practicePartner}` : "",
     f.extraItems ? `【持ち物】\n${f.extraItems}` : "",
     f.practiceTime ? `【練習時間】\n${f.practiceTime}` : "",
     `【集合場所・時間】\n${f.meetingPlace}\n${f.meetingTime}`,
@@ -144,6 +149,7 @@ function buildPrintSections(f: TemplateFields): ExpeditionGuidePrintSection[] {
   const targetLeaderBody = [
     f.targetGroup ? `対象：${f.targetGroup}` : "",
     f.leaders ? `引率：${f.leaders}` : "",
+    f.practicePartner ? `練習相手：${f.practicePartner}` : "",
   ]
     .filter((line) => line !== "")
     .join("\n");

@@ -1,5 +1,6 @@
 import {
   expeditionGuideInputHasAnyValue,
+  LEADER_OPTIONS,
   TARGET_GROUP_OPTIONS,
   type ExpeditionGuideInput,
 } from "../../types/expeditionGuide";
@@ -16,6 +17,7 @@ type FieldConfig = {
   placeholder: string;
   multiline?: boolean;
   historyField?: ExpeditionGuideHistoryField;
+  presetInserts?: string[];
 };
 
 // スマホでもさっと埋められるよう、本当に無いと困る5項目だけを常時表示にする。
@@ -26,9 +28,9 @@ const BASIC_FIELDS: FieldConfig[] = [
   {
     field: "meetingPlace",
     label: "集合場所",
-    placeholder: "例：〇〇小学校 正門前\n複数地点があれば改行して記入できます",
+    placeholder: "例：現地　7:00\n複数地点があれば改行して記入できます",
     multiline: true,
-    historyField: "meetingPlace",
+    presetInserts: ["現地", "立川駅"],
   },
   { field: "meetingTime", label: "集合時間", placeholder: "例：7:00" },
   {
@@ -40,28 +42,23 @@ const BASIC_FIELDS: FieldConfig[] = [
   },
 ];
 
-// 対象は特殊項目（チェックボックス群）として別枠で扱うため、ここには含めない
+// 対象・引率者は特殊項目（チェックボックス群）として別枠で扱うため、ここには含めない
 const DETAIL_FIELDS: FieldConfig[] = [
-  {
-    field: "leaders",
-    label: "引率者",
-    placeholder: "例：小学生：窪田　中学生：岡本",
-    historyField: "leaders",
-  },
+  { field: "practicePartner", label: "練習相手", placeholder: "例：エス水球クラブ" },
   { field: "practiceTime", label: "練習時間", placeholder: "例：9:00〜12:00" },
   { field: "departureTime", label: "出発時間", placeholder: "例：7:15" },
   {
     field: "dismissalTime",
     label: "解散場所・時間",
-    placeholder: "例：現地解散　18:00頃\n複数地点があれば改行して記入できます",
+    placeholder: "例：現地　18:00頃\n複数地点があれば改行して記入できます",
     multiline: true,
-    historyField: "dismissalTime",
+    presetInserts: ["現地", "立川駅"],
   },
   { field: "accommodation", label: "宿泊先", placeholder: "例：〇〇ホテル（現地宿泊なしの場合は空欄でOK）" },
   {
     field: "fee",
     label: "参加費",
-    placeholder: "例：1,000円\n（内訳）スタッフ費用・雑費等",
+    placeholder: "例：1,000円",
     multiline: true,
   },
   {
@@ -113,12 +110,46 @@ function HistoryChips({
   );
 }
 
+// 「現地」「立川駅」のようによく使う場所の断片をワンタップで挿入するチップ。
+// 履歴チップ（置き換え）と違い、複数地点を書き足せるよう末尾に追記する。
+function PresetInsertChips({
+  presets,
+  currentValue,
+  onInsert,
+}: {
+  presets: string[];
+  currentValue: string;
+  onInsert: (value: string) => void;
+}) {
+  return (
+    <div className="mb-1 flex flex-wrap gap-1">
+      {presets.map((preset) => (
+        <button
+          key={preset}
+          type="button"
+          onClick={() =>
+            onInsert(
+              currentValue.trim() === ""
+                ? `${preset}　`
+                : `${currentValue}\n${preset}　`,
+            )
+          }
+          className="rounded-full border border-blue-300 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100"
+        >
+          + {preset}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function FieldInput({
   field,
   label,
   placeholder,
   multiline,
   historyField,
+  presetInserts,
   value,
   onChange,
   highlight,
@@ -143,6 +174,13 @@ function FieldInput({
       {historyField && (
         <HistoryChips historyField={historyField} onPick={onChange} />
       )}
+      {presetInserts && (
+        <PresetInsertChips
+          presets={presetInserts}
+          currentValue={value}
+          onInsert={onChange}
+        />
+      )}
       {multiline ? (
         <textarea
           id={field}
@@ -166,30 +204,50 @@ function FieldInput({
   );
 }
 
-function TargetGroupField({
+// チェックボックスで選ぶ項目（対象・引率者）の共通部品。
+// 値は「・」区切りの1本の文字列として保持し、選択肢に無い分は
+// allowFreeText時のみ自由記入欄の内容として末尾にくっつける。
+function CheckboxGroupField({
+  label,
+  options,
   value,
   onChange,
+  allowFreeText,
+  freeTextPlaceholder,
 }: {
+  label: string;
+  options: readonly string[];
   value: string;
   onChange: (value: string) => void;
+  allowFreeText?: boolean;
+  freeTextPlaceholder?: string;
 }) {
-  const selected = value
+  const parts = value
     .split("・")
     .map((v) => v.trim())
     .filter(Boolean);
+  const selected = parts.filter((p) => (options as readonly string[]).includes(p));
+  const extra = parts
+    .filter((p) => !(options as readonly string[]).includes(p))
+    .join("・");
+
+  const rebuild = (nextSelected: string[], nextExtra: string) => {
+    const joined = [...nextSelected, ...(nextExtra.trim() ? [nextExtra.trim()] : [])];
+    onChange(joined.join("・"));
+  };
 
   const toggle = (option: string) => {
-    const next = selected.includes(option)
+    const nextSelected = selected.includes(option)
       ? selected.filter((v) => v !== option)
       : [...selected, option];
-    onChange(next.join("・"));
+    rebuild(nextSelected, extra);
   };
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-gray-700">対象</label>
+      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
       <div className="flex flex-wrap gap-2">
-        {TARGET_GROUP_OPTIONS.map((option) => (
+        {options.map((option) => (
           <label
             key={option}
             className="flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm has-checked:border-blue-500 has-checked:bg-blue-50"
@@ -204,6 +262,15 @@ function TargetGroupField({
           </label>
         ))}
       </div>
+      {allowFreeText && (
+        <input
+          type="text"
+          value={extra}
+          onChange={(e) => rebuild(selected, e.target.value)}
+          placeholder={freeTextPlaceholder}
+          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        />
+      )}
     </div>
   );
 }
@@ -240,9 +307,19 @@ export function ExpeditionGuideForm({
           詳細項目（任意・タップで開く）
         </summary>
         <div className="space-y-3 border-t border-gray-100 p-3">
-          <TargetGroupField
+          <CheckboxGroupField
+            label="対象"
+            options={TARGET_GROUP_OPTIONS}
             value={input.targetGroup}
             onChange={(value) => onUpdateField("targetGroup", value)}
+          />
+          <CheckboxGroupField
+            label="引率者"
+            options={LEADER_OPTIONS}
+            value={input.leaders}
+            onChange={(value) => onUpdateField("leaders", value)}
+            allowFreeText
+            freeTextPlaceholder="その他の引率者（自由記入）"
           />
           <div className="grid gap-3 sm:grid-cols-2">
             {DETAIL_FIELDS.map((config) => (

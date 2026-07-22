@@ -50,14 +50,11 @@ export function useExpeditionGuideData() {
     setInput(templateInput);
   };
 
-  // 会場・集合場所・解散場所・時間・引率者は、要項を作成するたびに履歴として
-  // 覚えておき、次回以降ワンタップで選べる候補にする。
+  // 会場は、要項を作成するたびに履歴として覚えておき、
+  // 次回以降ワンタップで選べる候補にする。
   const generate = () => {
     setOutput(buildExpeditionGuideOutput(input));
     recordExpeditionGuideFieldHistory("venue", input.venue);
-    recordExpeditionGuideFieldHistory("meetingPlace", input.meetingPlace);
-    recordExpeditionGuideFieldHistory("dismissalTime", input.dismissalTime);
-    recordExpeditionGuideFieldHistory("leaders", input.leaders);
   };
 
   return {

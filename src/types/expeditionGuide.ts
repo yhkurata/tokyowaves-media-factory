@@ -9,8 +9,9 @@ export interface ExpeditionGuideInput {
   schedule: string; // 日程
   meetingPlace: string; // 集合場所（複数地点がある場合は改行して記入可）
   meetingTime: string; // 集合時間
-  targetGroup: string; // 対象（例：中学男子、小学生・中女）
+  targetGroup: string; // 対象（小学生・中学生）
   leaders: string; // 引率者
+  practicePartner: string; // 練習相手（合同練習を行うクラブ名等）
   practiceTime: string; // 練習時間（集合・解散とは別の、活動そのものの開始〜終了時刻）
   departureTime: string; // 出発時間
   dismissalTime: string; // 解散予定（複数地点がある場合は改行して記入可）
@@ -30,17 +31,13 @@ const DEFAULT_EXTRA_ITEMS =
   "水着・セーム（タオル）・ゴーグル・キャップ（試合帽子　白×１　青×１）・ボール×１・スイミングキャップ・ジャージ（プールサイド用）";
 const DEFAULT_NOTES =
   "◎乗り換えをスムーズに行えるようにSuicaの用意をお願いいたします。\n◎移動時は必ず運動靴を履いてください。";
-const DEFAULT_FEE = "1,000円\n（内訳）スタッフ費用・雑費等";
+const DEFAULT_FEE = "1,000円";
 
-// 「対象」の選択肢（学年×性別）。複数選択して「・」区切りで組み立てる。
-export const TARGET_GROUP_OPTIONS = [
-  "小学生男子",
-  "小学生女子",
-  "中学生男子",
-  "中学生女子",
-  "高校生男子",
-  "高校生女子",
-] as const;
+// 「対象」の選択肢。複数選択して「・」区切りで組み立てる。
+export const TARGET_GROUP_OPTIONS = ["小学生", "中学生"] as const;
+
+// 「引率者」の選択肢（チェックボックス）。これ以外の名前は自由記入欄に追記する。
+export const LEADER_OPTIONS = ["窪田", "岡本", "倉田"] as const;
 
 export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
   return {
@@ -50,6 +47,7 @@ export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
     meetingTime: "",
     targetGroup: "",
     leaders: "",
+    practicePartner: "",
     practiceTime: "",
     departureTime: "",
     dismissalTime: "",

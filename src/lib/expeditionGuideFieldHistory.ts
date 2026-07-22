@@ -1,15 +1,13 @@
-// 会場・集合場所・解散場所・時間・引率者は毎回微妙に違うため厳密な固定リストには
-// しにくいが、実際によく使う値をワンタップで選べるように、要項を作成するたびに
-// 入力値を履歴として自動的に覚えておく（事前にリストを用意する必要がない）。
+// 会場は毎回微妙に違うため厳密な固定リストにはしにくいが、実際によく使う値を
+// ワンタップで選べるように、要項を作成するたびに入力値を履歴として自動的に
+// 覚えておく（事前にリストを用意する必要がない）。
+// 集合場所・解散場所は「現地／立川駅」の定型挿入チップ、引率者はチェックボックスに
+// 置き換えたため、履歴の対象は会場のみにしている。
 
 const STORAGE_KEY = "tokyowaves-media-factory:expedition-guide-history";
 const MAX_ENTRIES_PER_FIELD = 8;
 
-export type ExpeditionGuideHistoryField =
-  | "venue"
-  | "meetingPlace"
-  | "dismissalTime"
-  | "leaders";
+export type ExpeditionGuideHistoryField = "venue";
 
 type HistoryStore = Partial<Record<ExpeditionGuideHistoryField, string[]>>;
 
