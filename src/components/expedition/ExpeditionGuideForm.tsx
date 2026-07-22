@@ -15,7 +15,7 @@ type FieldConfig = {
 // それ以外は「詳細項目」として折りたたんでおく。
 const BASIC_FIELDS: FieldConfig[] = [
   { field: "tournamentName", label: "大会名", placeholder: "例：第◯回東京都春季水球大会" },
-  { field: "schedule", label: "日程", placeholder: "例：2026年8月1日（土）〜8月2日（日）" },
+  { field: "schedule", label: "期日", placeholder: "例：2026年8月1日（土）〜8月2日（日）" },
   {
     field: "meetingPlace",
     label: "集合場所",
@@ -23,21 +23,32 @@ const BASIC_FIELDS: FieldConfig[] = [
     multiline: true,
   },
   { field: "meetingTime", label: "集合時間", placeholder: "例：7:00" },
-  { field: "venue", label: "会場", placeholder: "例：〇〇市民プール" },
+  {
+    field: "venue",
+    label: "会場",
+    placeholder: "例：〇〇市民プール\n住所や最寄駅があれば改行して記入できます",
+    multiline: true,
+  },
 ];
 
 const DETAIL_FIELDS: FieldConfig[] = [
   { field: "targetGroup", label: "対象", placeholder: "例：中学男子、小学生・中女" },
   { field: "leaders", label: "引率者", placeholder: "例：小学生：窪田　中学生：岡本" },
+  { field: "practiceTime", label: "練習時間", placeholder: "例：9:00〜12:00" },
   { field: "departureTime", label: "出発時間", placeholder: "例：7:15" },
   {
     field: "dismissalTime",
-    label: "解散予定",
-    placeholder: "例：18:00頃（現地にて解散）\n複数地点があれば改行して記入できます",
+    label: "解散場所・時間",
+    placeholder: "例：現地解散　18:00頃\n複数地点があれば改行して記入できます",
     multiline: true,
   },
   { field: "accommodation", label: "宿泊先", placeholder: "例：〇〇ホテル（現地宿泊なしの場合は空欄でOK）" },
-  { field: "fee", label: "参加費", placeholder: "例：5,000円（交通費・宿泊費込み）" },
+  {
+    field: "fee",
+    label: "参加費",
+    placeholder: "例：1,000円\n（内訳）スタッフ費用・雑費等",
+    multiline: true,
+  },
   {
     field: "extraItems",
     label: "持ち物追加",

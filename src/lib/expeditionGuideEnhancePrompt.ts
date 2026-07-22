@@ -17,13 +17,14 @@ const MODE_INSTRUCTIONS: Record<ExpeditionGuideEnhanceMode, string> = {
 
 const FIELD_LABELS: Record<keyof ExpeditionGuideInput, string> = {
   tournamentName: "大会名",
-  schedule: "日程",
+  schedule: "期日",
   meetingPlace: "集合場所",
   meetingTime: "集合時間",
   targetGroup: "対象",
   leaders: "引率者",
+  practiceTime: "練習時間",
   departureTime: "出発時間",
-  dismissalTime: "解散予定",
+  dismissalTime: "解散場所・時間",
   venue: "会場",
   accommodation: "宿泊先",
   fee: "参加費",

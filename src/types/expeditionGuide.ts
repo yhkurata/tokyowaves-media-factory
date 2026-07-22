@@ -11,6 +11,7 @@ export interface ExpeditionGuideInput {
   meetingTime: string; // 集合時間
   targetGroup: string; // 対象（例：中学男子、小学生・中女）
   leaders: string; // 引率者
+  practiceTime: string; // 練習時間（集合・解散とは別の、活動そのものの開始〜終了時刻）
   departureTime: string; // 出発時間
   dismissalTime: string; // 解散予定（複数地点がある場合は改行して記入可）
   venue: string; // 会場
@@ -30,6 +31,7 @@ export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
     meetingTime: "",
     targetGroup: "",
     leaders: "",
+    practiceTime: "",
     departureTime: "",
     dismissalTime: "",
     venue: "",
