@@ -23,6 +23,14 @@ export interface ExpeditionGuideInput {
   emergencyContact: string; // 緊急連絡先
 }
 
+// 毎回ほぼ同じ内容になる項目は、空欄からではなく定型文からスタートできるように
+// デフォルト値を入れておく（必要に応じて上書き・削除して使う）。
+// 実際の遠征案内2件でほぼ同一だった内容を採用している。
+const DEFAULT_EXTRA_ITEMS =
+  "水着・セーム（タオル）・ゴーグル・キャップ（試合帽子　白×１　青×１）・ボール×１・スイミングキャップ・ジャージ（プールサイド用）";
+const DEFAULT_NOTES =
+  "◎乗り換えをスムーズに行えるようにSuicaの用意をお願いいたします。\n◎移動時は必ず運動靴を履いてください。";
+
 export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
   return {
     tournamentName: "",
@@ -37,9 +45,9 @@ export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
     venue: "",
     accommodation: "",
     fee: "",
-    extraItems: "",
+    extraItems: DEFAULT_EXTRA_ITEMS,
     lunch: "",
-    notes: "",
+    notes: DEFAULT_NOTES,
     emergencyContact: "",
   };
 }

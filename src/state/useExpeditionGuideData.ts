@@ -17,9 +17,12 @@ const AUTO_SAVE_DEBOUNCE_MS = 800;
 // APIコールもローディング状態も不要。AIによる「強化」結果はsetOutputで反映する。
 // 入力値はlocalStorageへ自動保存し、ページ再訪時に復元する。
 export function useExpeditionGuideData() {
-  const [input, setInput] = useState<ExpeditionGuideInput>(
-    () => loadExpeditionGuideSnapshot() ?? createEmptyExpeditionGuideInput(),
-  );
+  // 項目追加前の古いlocalStorageデータ（新フィールドが欠けている）を読み込んでも
+  // 落ちないよう、必ず空のデフォルト値にマージしてから使う。
+  const [input, setInput] = useState<ExpeditionGuideInput>(() => ({
+    ...createEmptyExpeditionGuideInput(),
+    ...loadExpeditionGuideSnapshot(),
+  }));
   const [output, setOutput] = useState<ExpeditionGuideOutput | null>(null);
 
   const saveTimeoutRef = useRef<number | undefined>(undefined);
