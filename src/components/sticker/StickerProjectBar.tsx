@@ -47,18 +47,18 @@ export function StickerProjectBar({ snapshot, onLoad }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="flex flex-wrap items-center gap-2 text-sm">
       <button
         type="button"
         onClick={handleSave}
-        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        className="whitespace-nowrap rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
       >
         💾 保存
       </button>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        className="whitespace-nowrap rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
       >
         📂 読み込む
       </button>

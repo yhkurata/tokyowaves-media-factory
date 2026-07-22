@@ -54,7 +54,7 @@ export function StickerProjectSwitcher({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {renaming ? (
         <div className="flex items-center gap-1">
           <input
@@ -72,14 +72,14 @@ export function StickerProjectSwitcher({
             type="button"
             onClick={handleRename}
             disabled={renameValue.trim() === ""}
-            className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="whitespace-nowrap rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             保存
           </button>
           <button
             type="button"
             onClick={() => setRenaming(false)}
-            className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+            className="whitespace-nowrap rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
           >
             取消
           </button>
@@ -102,7 +102,7 @@ export function StickerProjectSwitcher({
         <button
           type="button"
           onClick={startRenaming}
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+          className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
         >
           名前変更
         </button>
@@ -129,7 +129,7 @@ export function StickerProjectSwitcher({
             type="button"
             onClick={handleCreate}
             disabled={newName.trim() === ""}
-            className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="whitespace-nowrap rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             作成
           </button>
@@ -139,7 +139,7 @@ export function StickerProjectSwitcher({
               setCreating(false);
               setNewName("");
             }}
-            className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+            className="whitespace-nowrap rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
           >
             取消
           </button>
@@ -148,7 +148,7 @@ export function StickerProjectSwitcher({
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+          className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
         >
           ＋新規プロジェクト
         </button>
@@ -163,14 +163,14 @@ export function StickerProjectSwitcher({
             <button
               type="button"
               onClick={handleDelete}
-              className="rounded-md bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500"
+              className="whitespace-nowrap rounded-md bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500"
             >
               削除する
             </button>
             <button
               type="button"
               onClick={() => setConfirmingDelete(false)}
-              className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+              className="whitespace-nowrap rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
             >
               取消
             </button>
@@ -179,7 +179,7 @@ export function StickerProjectSwitcher({
           <button
             type="button"
             onClick={() => setConfirmingDelete(true)}
-            className="rounded-md px-2 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+            className="whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
           >
             削除
           </button>
