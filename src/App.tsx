@@ -51,6 +51,17 @@ const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "expedition-guide", label: "遠征要項AI" },
 ];
 
+// ?tool=expedition-guide のようなURLを直接開くと、そのタブが最初から
+// 選ばれた状態になる（特定の機能だけをチームに共有するためのディープリンク）。
+const TOOL_QUERY_PARAM = "tool";
+
+function getModeFromUrl(): AppMode | null {
+  const value = new URLSearchParams(window.location.search).get(
+    TOOL_QUERY_PARAM,
+  );
+  return MODE_TABS.some((tab) => tab.id === value) ? (value as AppMode) : null;
+}
+
 function snapshotHasAnyData(data: ProjectData): boolean {
   return (
     tournamentHasData(data.tournament) ||
@@ -87,9 +98,19 @@ interface AnalysisSummary {
 }
 
 function App() {
-  const [mode, setMode] = useState<AppMode>("tournament");
+  const [mode, setMode] = useState<AppMode>(
+    () => getModeFromUrl() ?? "tournament",
+  );
   const stickerData = useStickerData();
   const expeditionGuideData = useExpeditionGuideData();
+
+  // 現在のタブをURLの?tool=に反映し、そのURLをそのまま共有すれば
+  // 同じタブが開いた状態を再現できるようにする。
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set(TOOL_QUERY_PARAM, mode);
+    window.history.replaceState(null, "", url);
+  }, [mode]);
 
   const [wizardStep, setWizardStep] = useState<WizardStep>("upload");
   const [analysisError, setAnalysisError] = useState("");

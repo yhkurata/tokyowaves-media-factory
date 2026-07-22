@@ -7,16 +7,18 @@
 export interface ExpeditionGuideInput {
   tournamentName: string; // 大会名
   schedule: string; // 日程
-  meetingPlace: string; // 集合場所
+  meetingPlace: string; // 集合場所（複数地点がある場合は改行して記入可）
   meetingTime: string; // 集合時間
+  targetGroup: string; // 対象（例：中学男子、小学生・中女）
+  leaders: string; // 引率者
   departureTime: string; // 出発時間
-  dismissalTime: string; // 解散予定
+  dismissalTime: string; // 解散予定（複数地点がある場合は改行して記入可）
   venue: string; // 会場
   accommodation: string; // 宿泊先
   fee: string; // 参加費
-  extraItems: string; // 持ち物追加
+  extraItems: string; // 持ち物追加（改行して箇条書き可）
   lunch: string; // 昼食
-  notes: string; // 注意事項
+  notes: string; // 注意事項（改行して箇条書き可）
   emergencyContact: string; // 緊急連絡先
 }
 
@@ -26,6 +28,8 @@ export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
     schedule: "",
     meetingPlace: "",
     meetingTime: "",
+    targetGroup: "",
+    leaders: "",
     departureTime: "",
     dismissalTime: "",
     venue: "",

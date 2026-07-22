@@ -27,6 +27,8 @@ export function buildExpeditionGuideOutput(
   const meetingTime = requiredOrPlaceholder(input.meetingTime);
   const venue = requiredOrPlaceholder(input.venue);
 
+  const targetGroup = input.targetGroup.trim();
+  const leaders = input.leaders.trim();
   const departureTime = input.departureTime.trim();
   const dismissalTime = input.dismissalTime.trim();
   const accommodation = input.accommodation.trim();
@@ -36,53 +38,30 @@ export function buildExpeditionGuideOutput(
   const notes = input.notes.trim();
   const emergencyContact = input.emergencyContact.trim();
 
+  const fields: TemplateFields = {
+    tournamentName,
+    schedule,
+    venue,
+    meetingPlace,
+    meetingTime,
+    targetGroup,
+    leaders,
+    departureTime,
+    dismissalTime,
+    accommodation,
+    fee,
+    extraItems,
+    lunch,
+    notes,
+    emergencyContact,
+  };
+
   return {
-    line: buildLineText({
-      tournamentName,
-      schedule,
-      venue,
-      meetingPlace,
-      meetingTime,
-      departureTime,
-      dismissalTime,
-      accommodation,
-      fee,
-      extraItems,
-      lunch,
-      notes,
-      emergencyContact,
-    }),
-    email: buildEmailText({
-      tournamentName,
-      schedule,
-      venue,
-      meetingPlace,
-      meetingTime,
-      departureTime,
-      dismissalTime,
-      accommodation,
-      fee,
-      extraItems,
-      lunch,
-      notes,
-      emergencyContact,
-    }),
+    line: buildLineText(fields),
+    email: buildEmailText(fields),
     printTitle: `${input.tournamentName.trim() || "TokyoWAVES"} 遠征要項`,
     printDateLabel: `発行日：${formatTodayJa()}`,
-    printSections: buildPrintSections({
-      schedule,
-      venue,
-      meetingPlace,
-      meetingTime,
-      departureTime,
-      dismissalTime,
-      accommodation,
-      fee,
-      extraItems,
-      lunch,
-      notes,
-      emergencyContact,
-    }),
+    printSections: buildPrintSections(fields),
   };
 }
 
@@ -92,6 +71,8 @@ interface TemplateFields {
   venue: string;
   meetingPlace: string;
   meetingTime: string;
+  targetGroup: string;
+  leaders: string;
   departureTime: string;
   dismissalTime: string;
   accommodation: string;
@@ -107,6 +88,8 @@ function buildLineText(f: TemplateFields): string {
     `📢【${f.tournamentName} 遠征のお知らせ】`,
     "",
     `🗓 日程：${f.schedule}`,
+    f.targetGroup ? `👥 対象：${f.targetGroup}` : "",
+    f.leaders ? `🧑‍🏫 引率：${f.leaders}` : "",
     `🏟 会場：${f.venue}`,
     `📍 集合場所：${f.meetingPlace}`,
     `⏰ 集合時間：${f.meetingTime}`,
@@ -129,6 +112,8 @@ function buildEmailText(f: TemplateFields): string {
     "保護者各位",
     `いつもお世話になっております。${f.tournamentName}の遠征要項についてご案内いたします。`,
     `【日程】\n${f.schedule}`,
+    f.targetGroup ? `【対象】\n${f.targetGroup}` : "",
+    f.leaders ? `【引率】\n${f.leaders}` : "",
     `【会場】\n${f.venue}`,
     `【集合場所】\n${f.meetingPlace}`,
     `【集合時間】\n${f.meetingTime}`,
@@ -157,8 +142,16 @@ function buildPrintSections(
     .filter((line) => line !== "")
     .join("\n");
 
+  const targetLeaderBody = [
+    f.targetGroup ? `対象：${f.targetGroup}` : "",
+    f.leaders ? `引率：${f.leaders}` : "",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+
   const sections: (ExpeditionGuidePrintSection | null)[] = [
     { heading: "日程・会場", body: `日程：${f.schedule}\n会場：${f.venue}` },
+    targetLeaderBody ? { heading: "対象・引率", body: targetLeaderBody } : null,
     { heading: "集合・出発", body: meetingBody },
     f.dismissalTime ? { heading: "解散予定", body: f.dismissalTime } : null,
     f.accommodation ? { heading: "宿泊先", body: f.accommodation } : null,
