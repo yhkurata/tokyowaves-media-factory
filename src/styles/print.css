@@ -71,6 +71,29 @@
   line-height: 1.9;
 }
 
+/* スマホ幅では210mm(A4)がそのまま入らず横スクロールが必要になってしまうため、
+   画面表示時（印刷時は除く）だけ幅を画面いっぱいに縮めて、縦スクロールだけで
+   読めるようにする。実際の印刷サイズは下の @media print が別途A4を強制する。 */
+@media screen and (max-width: 700px) {
+  .print-document {
+    width: 100%;
+    min-height: 0;
+    padding: 6mm 5mm;
+  }
+
+  .print-document__title {
+    font-size: 18px;
+  }
+
+  .print-document__heading {
+    font-size: 12px;
+  }
+
+  .print-document__body {
+    font-size: 12.5px;
+  }
+}
+
 @media print {
   @page {
     size: A4 portrait;
