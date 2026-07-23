@@ -6,7 +6,7 @@ import {
   type ExpeditionGuideInput,
 } from "../../types/expeditionGuide";
 import { reviewFieldClass } from "../../lib/formStyles";
-import { buildTransitDirectionsUrl } from "../../lib/googleMapsTransit";
+import { buildTransitSearchUrl } from "../../lib/transitSearch";
 import { ExpeditionGuideTemplatePicker } from "./ExpeditionGuideTemplatePicker";
 
 type FieldConfig = {
@@ -197,10 +197,10 @@ function CheckboxGroupField({
   );
 }
 
-// 立川駅から会場までの乗換案内をワンタップで調べられるようにするリンク。
-// APIは使わずGoogleマップの検索結果を開くだけ（結果はGoogleマップ側で確認・コピーする）。
+// 立川から会場までの乗換案内をワンタップで調べられるようにするリンク。
+// APIは使わずYahoo!路線情報の検索結果を開くだけ（結果はそちらで確認・コピーする）。
 function TransitLink({ venue }: { venue: string }) {
-  const url = buildTransitDirectionsUrl(venue);
+  const url = buildTransitSearchUrl(venue);
   if (!url) return null;
   return (
     <a
@@ -209,7 +209,7 @@ function TransitLink({ venue }: { venue: string }) {
       rel="noopener noreferrer"
       className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline"
     >
-      🚃 乗換案内を調べる（立川駅→会場、Googleマップ）
+      🚃 乗換案内を調べる（立川→会場、Yahoo!路線情報）
     </a>
   );
 }
