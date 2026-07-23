@@ -16,18 +16,17 @@ function formatTodayJa(): string {
 }
 
 // 遠征要項AIの基本生成ロジック（テンプレートエンジン）。
-// APIを呼ばない純粋関数。「タイトル・期日・集合場所・集合時間・会場」以外は
+// APIを呼ばない純粋関数。「タイトル・期日・集合場所・時間・会場」以外は
 // 未入力ならその行/セクションごと省略する。
 // 項目の並び順は、TokyoWAVESが実際に記入している流れ
 // （タイトル→引率→期日→会場→対象→持ち物→練習時間→練習相手→
-// 集合場所→集合時間→解散場所→解散時間→参加費→その他）に合わせてある。
+// 集合場所・時間→解散場所・時間→参加費→その他）に合わせてある。
 export function buildExpeditionGuideOutput(
   input: ExpeditionGuideInput,
 ): ExpeditionGuideOutput {
   const tournamentName = requiredOrPlaceholder(input.tournamentName);
   const schedule = requiredOrPlaceholder(input.schedule);
-  const meetingPlace = requiredOrPlaceholder(input.meetingPlace);
-  const meetingTime = requiredOrPlaceholder(input.meetingTime);
+  const meeting = requiredOrPlaceholder(input.meeting);
   const venue = requiredOrPlaceholder(input.venue);
 
   const leaders = input.leaders.trim();
@@ -35,8 +34,7 @@ export function buildExpeditionGuideOutput(
   const extraItems = input.extraItems.trim();
   const practiceTime = input.practiceTime.trim();
   const practicePartner = input.practicePartner.trim();
-  const dismissalPlace = input.dismissalPlace.trim();
-  const dismissalTime = input.dismissalTime.trim();
+  const dismissal = input.dismissal.trim();
   const fee = input.fee.trim();
   const notes = input.notes.trim();
 
@@ -49,10 +47,8 @@ export function buildExpeditionGuideOutput(
     extraItems,
     practiceTime,
     practicePartner,
-    meetingPlace,
-    meetingTime,
-    dismissalPlace,
-    dismissalTime,
+    meeting,
+    dismissal,
     fee,
     notes,
   };
@@ -75,10 +71,8 @@ interface TemplateFields {
   extraItems: string;
   practiceTime: string;
   practicePartner: string;
-  meetingPlace: string;
-  meetingTime: string;
-  dismissalPlace: string;
-  dismissalTime: string;
+  meeting: string;
+  dismissal: string;
   fee: string;
   notes: string;
 }
@@ -94,10 +88,8 @@ function buildLineText(f: TemplateFields): string {
     f.extraItems ? `🎒 持ち物：${f.extraItems}` : "",
     f.practiceTime ? `🏊 練習時間：${f.practiceTime}` : "",
     f.practicePartner ? `🤝 練習相手：${f.practicePartner}` : "",
-    `📍 集合場所：${f.meetingPlace}`,
-    `⏰ 集合時間：${f.meetingTime}`,
-    f.dismissalPlace ? `🏁 解散場所：${f.dismissalPlace}` : "",
-    f.dismissalTime ? `🏁 解散時間：${f.dismissalTime}` : "",
+    `📍 集合場所・時間：${f.meeting}`,
+    f.dismissal ? `🏁 解散場所・時間：${f.dismissal}` : "",
     f.fee ? `💰 参加費：${f.fee}` : "",
     f.notes ? `📝 その他：${f.notes}` : "",
     "",
@@ -117,10 +109,8 @@ function buildEmailText(f: TemplateFields): string {
     f.extraItems ? `【持ち物】\n${f.extraItems}` : "",
     f.practiceTime ? `【練習時間】\n${f.practiceTime}` : "",
     f.practicePartner ? `【練習相手】\n${f.practicePartner}` : "",
-    `【集合場所】\n${f.meetingPlace}`,
-    `【集合時間】\n${f.meetingTime}`,
-    f.dismissalPlace ? `【解散場所】\n${f.dismissalPlace}` : "",
-    f.dismissalTime ? `【解散時間】\n${f.dismissalTime}` : "",
+    `【集合場所・時間】\n${f.meeting}`,
+    f.dismissal ? `【解散場所・時間】\n${f.dismissal}` : "",
     f.fee ? `【参加費】\n${f.fee}` : "",
     f.notes ? `【その他】\n${f.notes}` : "",
     "ご不明な点がございましたら、お気軽にお問い合わせください。\nよろしくお願いいたします。",
@@ -130,14 +120,6 @@ function buildEmailText(f: TemplateFields): string {
 }
 
 function buildPrintSections(f: TemplateFields): ExpeditionGuidePrintSection[] {
-  const meetingBody = `集合場所：${f.meetingPlace}\n集合時間：${f.meetingTime}`;
-  const dismissalBody = [
-    f.dismissalPlace ? `解散場所：${f.dismissalPlace}` : "",
-    f.dismissalTime ? `解散時間：${f.dismissalTime}` : "",
-  ]
-    .filter((line) => line !== "")
-    .join("\n");
-
   const sections: (ExpeditionGuidePrintSection | null)[] = [
     f.leaders ? { heading: "引率", body: f.leaders } : null,
     { heading: "期日・会場", body: `期日：${f.schedule}\n会場：${f.venue}` },
@@ -147,8 +129,8 @@ function buildPrintSections(f: TemplateFields): ExpeditionGuidePrintSection[] {
     f.practicePartner
       ? { heading: "練習相手", body: f.practicePartner }
       : null,
-    { heading: "集合場所・時間", body: meetingBody },
-    dismissalBody ? { heading: "解散場所・時間", body: dismissalBody } : null,
+    { heading: "集合場所・時間", body: f.meeting },
+    f.dismissal ? { heading: "解散場所・時間", body: f.dismissal } : null,
     f.fee ? { heading: "参加費", body: f.fee } : null,
     f.notes ? { heading: "その他", body: f.notes } : null,
   ];

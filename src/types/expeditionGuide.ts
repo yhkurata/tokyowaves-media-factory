@@ -6,7 +6,7 @@
 //
 // フィールドの並びは、実際にTokyoWAVESが使っている記入順に合わせてある：
 // タイトル→引率→期日→会場→対象→持ち物→練習時間→練習相手→
-// 集合場所→集合時間→解散場所→解散時間→参加費→その他
+// 集合場所・時間→解散場所・時間→参加費→その他
 
 export interface ExpeditionGuideInput {
   tournamentName: string; // タイトル
@@ -17,10 +17,8 @@ export interface ExpeditionGuideInput {
   extraItems: string; // 持ち物（改行して箇条書き可）
   practiceTime: string; // 練習時間
   practicePartner: string; // 練習相手（合同練習を行うクラブ名等）
-  meetingPlace: string; // 集合場所（複数地点があれば改行して記入可）
-  meetingTime: string; // 集合時間
-  dismissalPlace: string; // 解散場所（複数地点があれば改行して記入可）
-  dismissalTime: string; // 解散時間
+  meeting: string; // 集合場所・時間（例：「立川駅　7:00」「現地　8:30」を改行して記入）
+  dismissal: string; // 解散場所・時間（同様に改行して記入可）
   fee: string; // 参加費
   notes: string; // その他（改行して箇条書き可）
 }
@@ -33,10 +31,10 @@ const DEFAULT_EXTRA_ITEMS =
 const DEFAULT_NOTES =
   "◎乗り換えをスムーズに行えるようにSuicaの用意をお願いいたします。\n◎移動時は必ず運動靴を履いてください。\n※解散時間が変更する場合、一斉LINEでご連絡します。\n・参加費は集合時に集めます。\n・保護者の観覧有り。\n・駐車場：（利用可能な駐車場があれば記入してください）\n・ご不明な点はお気軽にご連絡ください。\n・前日までに参加の有無をスプレッドシートまでご入力ください。";
 const DEFAULT_FEE = "1,000円";
-// 集合・解散はほぼ毎回「立川」と「現地」の2点になるため、空欄ではなく
+// 集合・解散はほぼ毎回「立川駅」と「現地」の2点になるため、空欄ではなく
 // 記入例を兼ねた定型文から始められるようにしてある（時間だけ書き足せばよい）。
-const DEFAULT_MEETING_PLACE = "立川　\n現地　";
-const DEFAULT_DISMISSAL_PLACE = "立川　\n現地　";
+const DEFAULT_MEETING = "立川駅　\n現地　";
+const DEFAULT_DISMISSAL = "立川駅　\n現地　";
 
 // 「対象」の選択肢。複数選択して「・」区切りで組み立てる。
 export const TARGET_GROUP_OPTIONS = ["小学生", "中学生", "全員"] as const;
@@ -56,10 +54,8 @@ export function createEmptyExpeditionGuideInput(): ExpeditionGuideInput {
     extraItems: DEFAULT_EXTRA_ITEMS,
     practiceTime: "",
     practicePartner: "",
-    meetingPlace: DEFAULT_MEETING_PLACE,
-    meetingTime: "",
-    dismissalPlace: DEFAULT_DISMISSAL_PLACE,
-    dismissalTime: "",
+    meeting: DEFAULT_MEETING,
+    dismissal: DEFAULT_DISMISSAL,
     fee: DEFAULT_FEE,
     notes: DEFAULT_NOTES,
   };
@@ -76,8 +72,7 @@ export function expeditionGuideInputHasAnyValue(
 export const REQUIRED_EXPEDITION_FIELDS: (keyof ExpeditionGuideInput)[] = [
   "tournamentName",
   "schedule",
-  "meetingPlace",
-  "meetingTime",
+  "meeting",
   "venue",
 ];
 
