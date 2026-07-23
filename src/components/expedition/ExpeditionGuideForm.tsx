@@ -6,6 +6,7 @@ import {
   type ExpeditionGuideInput,
 } from "../../types/expeditionGuide";
 import { reviewFieldClass } from "../../lib/formStyles";
+import { buildTransitDirectionsUrl } from "../../lib/googleMapsTransit";
 import { ExpeditionGuideTemplatePicker } from "./ExpeditionGuideTemplatePicker";
 
 type FieldConfig = {
@@ -196,6 +197,23 @@ function CheckboxGroupField({
   );
 }
 
+// 立川駅から会場までの乗換案内をワンタップで調べられるようにするリンク。
+// APIは使わずGoogleマップの検索結果を開くだけ（結果はGoogleマップ側で確認・コピーする）。
+function TransitLink({ venue }: { venue: string }) {
+  const url = buildTransitDirectionsUrl(venue);
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline"
+    >
+      🚃 乗換案内を調べる（立川駅→会場、Googleマップ）
+    </a>
+  );
+}
+
 export function ExpeditionGuideForm({
   input,
   onUpdateField,
@@ -223,15 +241,19 @@ export function ExpeditionGuideForm({
               allowFreeText={config.allowFreeText}
             />
           ) : (
-            <FieldInput
-              key={config.field}
-              {...config}
-              value={input[config.field]}
-              onChange={(value) => onUpdateField(config.field, value)}
-              highlight={(
-                REQUIRED_EXPEDITION_FIELDS as string[]
-              ).includes(config.field)}
-            />
+            <div key={config.field}>
+              <FieldInput
+                {...config}
+                value={input[config.field]}
+                onChange={(value) => onUpdateField(config.field, value)}
+                highlight={(
+                  REQUIRED_EXPEDITION_FIELDS as string[]
+                ).includes(config.field)}
+              />
+              {config.field === "venue" && (
+                <TransitLink venue={input.venue} />
+              )}
+            </div>
           ),
         )}
       </div>
