@@ -24,7 +24,12 @@ type FieldConfig = {
 // それ以外は「詳細項目」として折りたたんでおく。
 const BASIC_FIELDS: FieldConfig[] = [
   { field: "tournamentName", label: "大会名", placeholder: "例：第◯回東京都春季水球大会" },
-  { field: "schedule", label: "期日", placeholder: "例：2026年8月1日（土）〜8月2日（日）" },
+  {
+    field: "schedule",
+    label: "期日",
+    placeholder: "例：2026年8月1日（土）〜8月2日（日）\n複数日の詳細スケジュールがあれば改行して記入できます",
+    multiline: true,
+  },
   {
     field: "meetingPlace",
     label: "集合場所",
@@ -54,7 +59,12 @@ const DETAIL_FIELDS: FieldConfig[] = [
     multiline: true,
     presetInserts: ["現地", "立川駅"],
   },
-  { field: "accommodation", label: "宿泊先", placeholder: "例：〇〇ホテル（現地宿泊なしの場合は空欄でOK）" },
+  {
+    field: "accommodation",
+    label: "宿泊先",
+    placeholder: "例：〇〇ホテル（現地宿泊なしの場合は空欄でOK）\n学年ごとに宿が違う場合は改行して記入できます",
+    multiline: true,
+  },
   {
     field: "fee",
     label: "参加費",
