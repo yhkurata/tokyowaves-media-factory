@@ -16,10 +16,11 @@ function formatTodayJa(): string {
 }
 
 // 遠征要項AIの基本生成ロジック（テンプレートエンジン）。
-// APIを呼ばない純粋関数。「大会名・期日・集合場所・集合時間・会場」以外は
+// APIを呼ばない純粋関数。「タイトル・期日・集合場所・集合時間・会場」以外は
 // 未入力ならその行/セクションごと省略する。
-// 項目のラベル・並び順は、TokyoWAVESが実際に使っている遠征案内の書式
-// （期日／集合場所・時間／解散場所・時間 等）に合わせてある。
+// 項目の並び順は、TokyoWAVESが実際に記入している流れ
+// （タイトル→引率→期日→会場→対象→持ち物→練習時間→練習相手→
+// 集合場所→集合時間→解散場所→解散時間→参加費→その他）に合わせてある。
 export function buildExpeditionGuideOutput(
   input: ExpeditionGuideInput,
 ): ExpeditionGuideOutput {
@@ -29,37 +30,31 @@ export function buildExpeditionGuideOutput(
   const meetingTime = requiredOrPlaceholder(input.meetingTime);
   const venue = requiredOrPlaceholder(input.venue);
 
-  const targetGroup = input.targetGroup.trim();
   const leaders = input.leaders.trim();
-  const practicePartner = input.practicePartner.trim();
-  const practiceTime = input.practiceTime.trim();
-  const departureTime = input.departureTime.trim();
-  const dismissalTime = input.dismissalTime.trim();
-  const accommodation = input.accommodation.trim();
-  const fee = input.fee.trim();
+  const targetGroup = input.targetGroup.trim();
   const extraItems = input.extraItems.trim();
-  const lunch = input.lunch.trim();
+  const practiceTime = input.practiceTime.trim();
+  const practicePartner = input.practicePartner.trim();
+  const dismissalPlace = input.dismissalPlace.trim();
+  const dismissalTime = input.dismissalTime.trim();
+  const fee = input.fee.trim();
   const notes = input.notes.trim();
-  const emergencyContact = input.emergencyContact.trim();
 
   const fields: TemplateFields = {
     tournamentName,
+    leaders,
     schedule,
     venue,
+    targetGroup,
+    extraItems,
+    practiceTime,
+    practicePartner,
     meetingPlace,
     meetingTime,
-    targetGroup,
-    leaders,
-    practicePartner,
-    practiceTime,
-    departureTime,
+    dismissalPlace,
     dismissalTime,
-    accommodation,
     fee,
-    extraItems,
-    lunch,
     notes,
-    emergencyContact,
   };
 
   return {
@@ -73,47 +68,38 @@ export function buildExpeditionGuideOutput(
 
 interface TemplateFields {
   tournamentName: string;
+  leaders: string;
   schedule: string;
   venue: string;
+  targetGroup: string;
+  extraItems: string;
+  practiceTime: string;
+  practicePartner: string;
   meetingPlace: string;
   meetingTime: string;
-  targetGroup: string;
-  leaders: string;
-  practicePartner: string;
-  practiceTime: string;
-  departureTime: string;
+  dismissalPlace: string;
   dismissalTime: string;
-  accommodation: string;
   fee: string;
-  extraItems: string;
-  lunch: string;
   notes: string;
-  emergencyContact: string;
 }
 
-// 並び順: 期日・会場 → 対象・引率 → 持ち物 → 練習時間 →
-// 集合場所・時間 → 解散場所・時間 → 参加費 → 昼食 → 注意事項 →
-// 宿泊先 → 緊急連絡先（実際の遠征案内の流れに合わせてある）
 function buildLineText(f: TemplateFields): string {
   const lines = [
     `📢【${f.tournamentName} 遠征のお知らせ】`,
     "",
+    f.leaders ? `🧑‍🏫 引率：${f.leaders}` : "",
     `🗓 期日：${f.schedule}`,
     `🏟 会場：${f.venue}`,
     f.targetGroup ? `👥 対象：${f.targetGroup}` : "",
-    f.leaders ? `🧑‍🏫 引率：${f.leaders}` : "",
-    f.practicePartner ? `🤝 練習相手：${f.practicePartner}` : "",
     f.extraItems ? `🎒 持ち物：${f.extraItems}` : "",
     f.practiceTime ? `🏊 練習時間：${f.practiceTime}` : "",
+    f.practicePartner ? `🤝 練習相手：${f.practicePartner}` : "",
     `📍 集合場所：${f.meetingPlace}`,
     `⏰ 集合時間：${f.meetingTime}`,
-    f.departureTime ? `🚌 出発時間：${f.departureTime}` : "",
-    f.dismissalTime ? `🏁 解散場所・時間：${f.dismissalTime}` : "",
+    f.dismissalPlace ? `🏁 解散場所：${f.dismissalPlace}` : "",
+    f.dismissalTime ? `🏁 解散時間：${f.dismissalTime}` : "",
     f.fee ? `💰 参加費：${f.fee}` : "",
-    f.lunch ? `🍙 昼食：${f.lunch}` : "",
-    f.notes ? `⚠️ 注意事項：${f.notes}` : "",
-    f.accommodation ? `🏨 宿泊先：${f.accommodation}` : "",
-    f.emergencyContact ? `📞 緊急連絡先：${f.emergencyContact}` : "",
+    f.notes ? `📝 その他：${f.notes}` : "",
     "",
     "よろしくお願いいたします🙇",
   ];
@@ -124,60 +110,47 @@ function buildEmailText(f: TemplateFields): string {
   const blocks = [
     "保護者各位",
     `いつもお世話になっております。${f.tournamentName}の遠征要項についてご案内いたします。`,
+    f.leaders ? `【引率】\n${f.leaders}` : "",
     `【期日】\n${f.schedule}`,
     `【会場】\n${f.venue}`,
     f.targetGroup ? `【対象】\n${f.targetGroup}` : "",
-    f.leaders ? `【引率】\n${f.leaders}` : "",
-    f.practicePartner ? `【練習相手】\n${f.practicePartner}` : "",
     f.extraItems ? `【持ち物】\n${f.extraItems}` : "",
     f.practiceTime ? `【練習時間】\n${f.practiceTime}` : "",
-    `【集合場所・時間】\n${f.meetingPlace}\n${f.meetingTime}`,
-    f.departureTime ? `【出発時間】\n${f.departureTime}` : "",
-    f.dismissalTime ? `【解散場所・時間】\n${f.dismissalTime}` : "",
+    f.practicePartner ? `【練習相手】\n${f.practicePartner}` : "",
+    `【集合場所】\n${f.meetingPlace}`,
+    `【集合時間】\n${f.meetingTime}`,
+    f.dismissalPlace ? `【解散場所】\n${f.dismissalPlace}` : "",
+    f.dismissalTime ? `【解散時間】\n${f.dismissalTime}` : "",
     f.fee ? `【参加費】\n${f.fee}` : "",
-    f.lunch ? `【昼食】\n${f.lunch}` : "",
-    f.notes ? `【注意事項】\n${f.notes}` : "",
-    f.accommodation ? `【宿泊先】\n${f.accommodation}` : "",
-    f.emergencyContact ? `【緊急連絡先】\n${f.emergencyContact}` : "",
-    "ご不明な点がございましたら、緊急連絡先までお問い合わせください。\nよろしくお願いいたします。",
+    f.notes ? `【その他】\n${f.notes}` : "",
+    "ご不明な点がございましたら、お気軽にお問い合わせください。\nよろしくお願いいたします。",
     "TokyoWAVES",
   ];
   return blocks.filter((block) => block !== "").join("\n\n");
 }
 
 function buildPrintSections(f: TemplateFields): ExpeditionGuidePrintSection[] {
-  const targetLeaderBody = [
-    f.targetGroup ? `対象：${f.targetGroup}` : "",
-    f.leaders ? `引率：${f.leaders}` : "",
-    f.practicePartner ? `練習相手：${f.practicePartner}` : "",
-  ]
-    .filter((line) => line !== "")
-    .join("\n");
-
-  const meetingBody = [
-    `集合場所：${f.meetingPlace}`,
-    `集合時間：${f.meetingTime}`,
-    f.departureTime ? `出発時間：${f.departureTime}` : "",
+  const meetingBody = `集合場所：${f.meetingPlace}\n集合時間：${f.meetingTime}`;
+  const dismissalBody = [
+    f.dismissalPlace ? `解散場所：${f.dismissalPlace}` : "",
+    f.dismissalTime ? `解散時間：${f.dismissalTime}` : "",
   ]
     .filter((line) => line !== "")
     .join("\n");
 
   const sections: (ExpeditionGuidePrintSection | null)[] = [
+    f.leaders ? { heading: "引率", body: f.leaders } : null,
     { heading: "期日・会場", body: `期日：${f.schedule}\n会場：${f.venue}` },
-    targetLeaderBody ? { heading: "対象・引率", body: targetLeaderBody } : null,
+    f.targetGroup ? { heading: "対象", body: f.targetGroup } : null,
     f.extraItems ? { heading: "持ち物", body: f.extraItems } : null,
     f.practiceTime ? { heading: "練習時間", body: f.practiceTime } : null,
+    f.practicePartner
+      ? { heading: "練習相手", body: f.practicePartner }
+      : null,
     { heading: "集合場所・時間", body: meetingBody },
-    f.dismissalTime
-      ? { heading: "解散場所・時間", body: f.dismissalTime }
-      : null,
+    dismissalBody ? { heading: "解散場所・時間", body: dismissalBody } : null,
     f.fee ? { heading: "参加費", body: f.fee } : null,
-    f.lunch ? { heading: "昼食", body: f.lunch } : null,
-    f.notes ? { heading: "注意事項", body: f.notes } : null,
-    f.accommodation ? { heading: "宿泊先", body: f.accommodation } : null,
-    f.emergencyContact
-      ? { heading: "緊急連絡先", body: f.emergencyContact }
-      : null,
+    f.notes ? { heading: "その他", body: f.notes } : null,
   ];
 
   return sections.filter((s): s is ExpeditionGuidePrintSection => s !== null);

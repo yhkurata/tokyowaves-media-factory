@@ -6,9 +6,9 @@ import type { ExpeditionGuideTemplate } from "../types/expeditionGuideTemplate";
 
 const STORAGE_KEY = "tokyowaves-media-factory:expedition-guide-templates";
 
-// 初回利用時、保存済みテンプレートが無ければこの2件から選べるようにする。
-// ユーザーが実際に共有してくれた遠征案内2件をそのまま取り込んだもの。
-// 期日はその都度変わるため空欄にしてある（他は実物どおり）。
+// 初回利用時、保存済みテンプレートが無ければこの4件から選べるようにする。
+// ユーザーが実際に共有してくれた遠征案内をそのまま取り込んだもの。
+// 期日・練習時間はその都度変わるため空欄にしてある（他は実物どおり）。
 function buildSeedTemplates(): ExpeditionGuideTemplate[] {
   const base = createEmptyExpeditionGuideInput();
   const now = new Date(0).toISOString();
@@ -21,21 +21,18 @@ function buildSeedTemplates(): ExpeditionGuideTemplate[] {
       input: {
         ...base,
         tournamentName: "大宮公園遠征",
-        schedule: "",
-        meetingPlace: "現地集合　11時（プール入口門前）",
-        meetingTime: "11:00",
-        targetGroup: "中学生",
         leaders: "窪田・岡本",
-        practicePartner: "エス水球クラブ",
-        practiceTime: "11:30〜14:00",
-        departureTime: "",
-        dismissalTime: "現地解散　14時30分",
+        schedule: "",
         venue:
           "大宮公園水泳場\n埼玉県さいたま市大宮区高鼻町4丁目\n最寄駅：東部アーバンパークライン　大宮公園駅",
-        accommodation: "",
+        targetGroup: "中学生",
+        practiceTime: "11:30〜14:00",
+        practicePartner: "エス水球クラブ",
+        meetingPlace: "現地集合　11時（プール入口門前）",
+        meetingTime: "11:00",
+        dismissalPlace: "現地解散（プール入口門前）",
+        dismissalTime: "14時30分",
         fee: "1,000円",
-        lunch: "早めに昼食を済ませてきてください（練習前に済ませる）",
-        emergencyContact: "",
       },
     },
     {
@@ -45,22 +42,18 @@ function buildSeedTemplates(): ExpeditionGuideTemplate[] {
       input: {
         ...base,
         tournamentName: "埼玉栄遠征",
-        schedule: "",
-        meetingPlace: "立川中央改札内　7時00分\n現地集合　8時30分（駐車場）",
-        meetingTime: "7:00 / 8:30",
-        targetGroup: "小学生・中学生",
         leaders: "窪田・岡本",
-        practicePartner: "エス水球クラブ",
-        practiceTime: "9:00〜12:00",
-        departureTime: "",
-        dismissalTime:
-          "立川中央改札内　14時10分\n現地解散　12時30〜45分前後（駐車場）",
+        schedule: "",
         venue:
           "埼玉栄中学校・高等学校\n埼玉県さいたま市西区西大宮3丁目11番地1\n最寄駅：JR川越線　西大宮駅",
-        accommodation: "",
+        targetGroup: "小学生・中学生",
+        practiceTime: "9:00〜12:00",
+        practicePartner: "エス水球クラブ",
+        meetingPlace: "立川中央改札内　7時00分\n現地集合　8時30分（駐車場）",
+        meetingTime: "7:00 / 8:30",
+        dismissalPlace: "立川中央改札内\n現地解散（駐車場）",
+        dismissalTime: "14時10分 / 12時30〜45分前後",
         fee: "1,000円",
-        lunch: "中庭で食べる予定",
-        emergencyContact: "",
       },
     },
     {
@@ -70,22 +63,18 @@ function buildSeedTemplates(): ExpeditionGuideTemplate[] {
       input: {
         ...base,
         tournamentName: "土浦第二高校遠征",
-        schedule: "",
-        meetingPlace: "立川集合　5時55分\n現地集合　8時30分（プール前）",
-        meetingTime: "5:55 / 8:30",
-        targetGroup: "全員",
         leaders: "窪田・倉田",
-        practicePartner: "ジョイフルAC・土浦水球クラブ・並木中等学校",
-        practiceTime: "9:00〜16:00前後",
-        departureTime: "",
-        dismissalTime:
-          "立川解散　19時20分前後\n現地解散　16時40分前後（プール前）",
+        schedule: "",
         venue:
           "茨城県立土浦第二高等学校\n茨城県土浦市立田町9-6\n最寄駅：土浦駅またはバスで移動：亀城公園前",
-        accommodation: "",
+        targetGroup: "全員",
+        practiceTime: "9:00〜16:00前後",
+        practicePartner: "ジョイフルAC・土浦水球クラブ・並木中等学校",
+        meetingPlace: "立川集合　5時55分\n現地集合　8時30分（プール前）",
+        meetingTime: "5:55 / 8:30",
+        dismissalPlace: "立川解散（プール前）\n現地解散（プール前）",
+        dismissalTime: "19時20分前後 / 16時40分前後",
         fee: "1,000円",
-        lunch: "保冷対策をお願いします",
-        emergencyContact: "",
       },
     },
     {
@@ -95,20 +84,17 @@ function buildSeedTemplates(): ExpeditionGuideTemplate[] {
       input: {
         ...base,
         tournamentName: "山梨甲府東高校遠征",
+        leaders: "窪田",
         schedule: "",
+        venue: "山梨県立甲府東高等学校\n山梨県甲府市酒折1-17-1",
+        targetGroup: "全員",
+        practiceTime: "9:00〜16:00",
+        practicePartner: "山梨水球倶楽部・川口SC",
         meetingPlace: "立川中央改札内　6時25分\n現地集合　8時50分（正門前）",
         meetingTime: "6:25 / 8:50",
-        targetGroup: "全員",
-        leaders: "窪田",
-        practicePartner: "山梨水球倶楽部・川口SC",
-        practiceTime: "9:00〜16:00",
-        departureTime: "",
-        dismissalTime: "立川中央改札内　19時00分\n現地解散　16時40分（正門前）",
-        venue: "山梨県立甲府東高等学校\n山梨県甲府市酒折1-17-1",
-        accommodation: "",
+        dismissalPlace: "立川中央改札内（正門前）\n現地解散（正門前）",
+        dismissalTime: "19時00分 / 16時40分",
         fee: "1,000円",
-        lunch: "保冷対策をお願いします",
-        emergencyContact: "",
       },
     },
   ];
@@ -131,16 +117,24 @@ function saveRawTemplates(templates: ExpeditionGuideTemplate[]) {
   }
 }
 
-// 初回だけシードテンプレート（大宮公園遠征・埼玉栄遠征）をlocalStorageに書き込み、
-// 以降は他のテンプレートと同じように編集・削除できる1つの配列として扱う
-// （テンプレートの管理はユーザー自身が行っていく前提のため、コード側での
-// 自動的な内容更新は行わない）。
+// 初回はシードテンプレートをlocalStorageに書き込み、以降は他のテンプレートと
+// 同じように編集・削除できる1つの配列として扱う。
+// コード側に新しいシードテンプレートが追加された場合は、同名のものが
+// 保存済みで無い限り自動的に追加する（前回、テンプレートを2件追加したのに
+// 既存ユーザーの画面に反映されなかった問題の対策）。
 export function loadExpeditionGuideTemplates(): ExpeditionGuideTemplate[] {
   const saved = loadRawTemplates();
-  if (saved) return saved;
   const seeds = buildSeedTemplates();
-  saveRawTemplates(seeds);
-  return seeds;
+  if (!saved) {
+    saveRawTemplates(seeds);
+    return seeds;
+  }
+  const savedNames = new Set(saved.map((t) => t.name));
+  const missingSeeds = seeds.filter((s) => !savedNames.has(s.name));
+  if (missingSeeds.length === 0) return saved;
+  const merged = [...saved, ...missingSeeds];
+  saveRawTemplates(merged);
+  return merged;
 }
 
 export function saveExpeditionGuideTemplate(

@@ -8,7 +8,7 @@ const MODE_INSTRUCTIONS: Record<ExpeditionGuideEnhanceMode, string> = {
   improve:
     "文章を自然に改善してください。日時・場所・金額・連絡先などの事実情報は一切変えず、より自然で読みやすい日本語に整えることだけを行ってください。",
   "suggest-notes":
-    "注意事項を提案してください。水球の遠征でよくある一般的な注意点（体調管理、持ち物の最終確認、行動範囲、SNS投稿時の配慮など）を、既存の注意事項に加えて具体的に追記してください。既存の事実情報は変えないでください。",
+    "注意事項を提案してください。水球の遠征でよくある一般的な注意点（体調管理、持ち物の最終確認、行動範囲、SNS投稿時の配慮など）を、既存の「その他」欄に加えて具体的に追記してください。既存の事実情報は変えないでください。",
   "beginner-supplement":
     "初めて遠征に参加する保護者にも分かるように補足説明を追加してください。当日の流れ（集合後にどう動くか、保護者の同行有無など）や、持ち物の目安など、初参加の方が迷いやすい点を分かりやすく補ってください。既存の事実情報は変えないでください。",
   "parent-tone":
@@ -16,23 +16,20 @@ const MODE_INSTRUCTIONS: Record<ExpeditionGuideEnhanceMode, string> = {
 };
 
 const FIELD_LABELS: Record<keyof ExpeditionGuideInput, string> = {
-  tournamentName: "大会名",
+  tournamentName: "タイトル",
+  leaders: "引率",
   schedule: "期日",
+  venue: "会場",
+  targetGroup: "対象",
+  extraItems: "持ち物",
+  practiceTime: "練習時間",
+  practicePartner: "練習相手",
   meetingPlace: "集合場所",
   meetingTime: "集合時間",
-  targetGroup: "対象",
-  leaders: "引率者",
-  practicePartner: "練習相手",
-  practiceTime: "練習時間",
-  departureTime: "出発時間",
-  dismissalTime: "解散場所・時間",
-  venue: "会場",
-  accommodation: "宿泊先",
+  dismissalPlace: "解散場所",
+  dismissalTime: "解散時間",
   fee: "参加費",
-  extraItems: "持ち物追加",
-  lunch: "昼食",
-  notes: "注意事項",
-  emergencyContact: "緊急連絡先",
+  notes: "その他",
 };
 
 function buildFieldsText(fields: ExpeditionGuideInput): string {

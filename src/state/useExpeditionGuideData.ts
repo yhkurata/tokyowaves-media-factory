@@ -9,7 +9,6 @@ import {
   saveExpeditionGuideSnapshot,
 } from "../lib/expeditionGuideAutoSave";
 import { buildExpeditionGuideOutput } from "../lib/expeditionGuideTemplate";
-import { recordExpeditionGuideFieldHistory } from "../lib/expeditionGuideFieldHistory";
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 
@@ -45,16 +44,15 @@ export function useExpeditionGuideData() {
     setInput((prev) => ({ ...prev, [field]: value }));
   };
 
-  // テンプレート選択時にフォーム全体をまるごと差し替える。
+  // テンプレート選択時にフォーム全体をまるごと差し替える。項目追加前に保存された
+  // 古いテンプレート（新フィールドが欠けている）を読み込んでも落ちないよう、
+  // 初回読み込みと同様にデフォルト値へマージしてから適用する。
   const loadTemplate = (templateInput: ExpeditionGuideInput) => {
-    setInput(templateInput);
+    setInput({ ...createEmptyExpeditionGuideInput(), ...templateInput });
   };
 
-  // 会場は、要項を作成するたびに履歴として覚えておき、
-  // 次回以降ワンタップで選べる候補にする。
   const generate = () => {
     setOutput(buildExpeditionGuideOutput(input));
-    recordExpeditionGuideFieldHistory("venue", input.venue);
   };
 
   return {
