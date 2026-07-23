@@ -151,16 +151,19 @@ function CheckboxGroupField({
     .filter((p) => !(options as readonly string[]).includes(p))
     .join("・");
 
+  // allowFreeText が無い項目（対象など）では、選択肢に一致しない古い値が
+  // 見えない形で残り続けることがないよう、チェックボックス操作のたびに
+  // 選択肢に無い文字列は破棄する（自由記入欄がある項目のみ保持する）。
   const rebuild = (nextSelected: string[], nextExtra: string) => {
-    const joined = [...nextSelected, ...(nextExtra.trim() ? [nextExtra.trim()] : [])];
-    onChange(joined.join("・"));
+    const keptExtra = allowFreeText && nextExtra.trim() ? [nextExtra.trim()] : [];
+    onChange([...nextSelected, ...keptExtra].join("・"));
   };
 
   const toggle = (option: string) => {
     const nextSelected = selected.includes(option)
       ? selected.filter((v) => v !== option)
       : [...selected, option];
-    rebuild(nextSelected, extra);
+    rebuild(nextSelected, allowFreeText ? extra : "");
   };
 
   return (

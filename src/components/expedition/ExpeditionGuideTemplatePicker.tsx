@@ -36,14 +36,12 @@ export function ExpeditionGuideTemplatePicker({
     if (!template) return;
     // 期日・練習時間は毎回変わりうる／修正忘れが起きやすいため、
     // テンプレートを選んでも必ず空欄に戻し、その都度入力し直してもらう。
-    // 持ち物・注意事項は場所によらず固定の定型文として運用するため、
-    // テンプレートの内容で上書きせず今の入力をそのまま維持する。
+    // それ以外（持ち物・その他を含む）はテンプレートごとに内容を独立させたいため、
+    // テンプレートの内容をそのまま反映する。
     onLoadTemplate({
       ...template.input,
       schedule: "",
       practiceTime: "",
-      extraItems: currentInput.extraItems,
-      notes: currentInput.notes,
     });
   };
 
@@ -57,6 +55,13 @@ export function ExpeditionGuideTemplatePicker({
 
   const handleUpdateSelected = () => {
     if (!selectedTemplate) return;
+    if (
+      !window.confirm(
+        `テンプレート「${selectedTemplate.name}」を今の内容で上書き保存しますか？`,
+      )
+    ) {
+      return;
+    }
     const next = updateExpeditionGuideTemplate(selectedTemplate.id, currentInput);
     setTemplates(next);
     setMessage(`「${selectedTemplate.name}」を今の内容で更新しました。`);
