@@ -54,7 +54,7 @@ export function PreviewGallery({
         <h2 className="text-sm font-bold text-gray-700">完成イメージ</h2>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-gray-500">
-            デザイン（タイムテーブル・リーグ組み合わせ・トーナメント表）：
+            デザイン（表紙・タイムテーブル・リーグ組み合わせ・トーナメント表）：
           </span>
           <div className="flex rounded-md border border-gray-300 bg-white p-0.5">
             {THEME_OPTIONS.map((option) => (
@@ -97,7 +97,7 @@ export function PreviewGallery({
                 }}
               >
                 {unit.kind === "cover" && (
-                  <PostImageTemplate tournament={tournament} />
+                  <PostImageTemplate tournament={tournament} theme={theme} />
                 )}
                 {unit.kind === "league" && (
                   <LeagueBoardTemplate leagues={leagues} theme={theme} />

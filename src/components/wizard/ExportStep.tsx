@@ -135,7 +135,7 @@ export function ExportStep({
             style={{ width: IMAGE_WIDTH, height: IMAGE_HEIGHT }}
           >
             {unit.kind === "cover" && (
-              <PostImageTemplate tournament={tournament} />
+              <PostImageTemplate tournament={tournament} theme={theme} />
             )}
             {unit.kind === "league" && (
               <LeagueBoardTemplate leagues={leagues} theme={theme} />
