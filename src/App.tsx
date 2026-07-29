@@ -184,6 +184,9 @@ function App() {
     timetableData.updateInfo(data.timetableInfo);
     timetableData.replaceMatches(data.matches);
     bracketData.loadBracket(data.bracket);
+    // theme追加前の古いプロジェクトファイル／自動保存データには無いことがあるため、
+    // その場合は標準テーマにフォールバックする。
+    setTheme(data.theme ?? "standard");
     setSelectedDayId("");
     setSelectedVenueId("");
     setAnalysisError("");
@@ -215,6 +218,7 @@ function App() {
         timetableInfo: timetableData.info,
         matches: timetableData.matches,
         bracket: bracketData.data,
+        theme,
       });
     }, AUTO_SAVE_DEBOUNCE_MS);
     return () => {
@@ -229,6 +233,7 @@ function App() {
     timetableData.info,
     timetableData.matches,
     bracketData.data,
+    theme,
   ]);
 
   const handleAnalyze = async (files: File[]) => {
@@ -309,6 +314,7 @@ function App() {
               timetableInfo: timetableData.info,
               matches: timetableData.matches,
               bracket: bracketData.data,
+              theme,
             }}
             onLoad={handleLoadProject}
           />

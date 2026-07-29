@@ -2,11 +2,16 @@ import type { Tournament } from "../types/tournament";
 import type { LeagueGroup } from "../types/league";
 import type { TimetableInfo, TimetableMatch } from "../types/timetable";
 import type { BracketData } from "../types/bracket";
+import type { Theme } from "../components/preview/theme";
 
 /**
  * 大会プロジェクトの保存・読込用フォーマット。
  * バージョンを持たせておくことで、将来フィールドを追加・変更した際に
  * 古い保存ファイルを読み込む際の移行処理を挟めるようにしてある。
+ *
+ * theme追加以前に保存された古いファイルにはこのフィールドが無いため、
+ * 読み込み側では data.theme ?? "standard" で必ず補完すること
+ * （parseProjectDataではtheme欠落を弾かない＝古いファイルも読み込めるようにする）。
  */
 export interface ProjectData {
   formatVersion: 1;
@@ -16,6 +21,7 @@ export interface ProjectData {
   timetableInfo: TimetableInfo;
   matches: TimetableMatch[];
   bracket: BracketData;
+  theme: Theme;
 }
 
 export type ProjectSnapshot = Omit<ProjectData, "formatVersion" | "savedAt">;
