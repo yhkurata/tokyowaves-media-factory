@@ -5,6 +5,63 @@ import { reviewFieldClass } from "../../lib/formStyles";
 
 const LEAGUE_OPTIONS = ["A", "B", "C", "D"];
 
+// AIの抽出結果が誤って別の日・会場の試合として登録された場合に、
+// 削除して作り直さなくても、その試合だけを正しい日付・会場へ付け替えられるようにする。
+function MatchMoveControl({
+  match,
+  tournamentDays,
+  onUpdateMatch,
+}: {
+  match: TimetableMatch;
+  tournamentDays: TournamentDay[];
+  onUpdateMatch: (id: string, patch: Partial<TimetableMatch>) => void;
+}) {
+  if (tournamentDays.length === 0) return null;
+
+  const currentDay = tournamentDays.find((d) => d.date === match.date);
+  const venuesForCurrentDay = currentDay?.venues ?? [];
+
+  const handleDayChange = (newDate: string) => {
+    const newDay = tournamentDays.find((d) => d.date === newDate);
+    const newVenue = newDay?.venues[0]?.name ?? "";
+    onUpdateMatch(match.id, { date: newDate, venue: newVenue });
+  };
+
+  return (
+    <div className="flex shrink-0 items-center gap-1 text-xs text-gray-500">
+      <span>移動先</span>
+      <select
+        value={match.date}
+        onChange={(e) => handleDayChange(e.target.value)}
+        title="この試合の日付を変更する"
+        className="rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:outline-none"
+      >
+        {tournamentDays.map((day) => (
+          <option key={day.id} value={day.date}>
+            {day.date ? formatDisplayDate(day.date) : "日付未設定"}
+          </option>
+        ))}
+      </select>
+      {venuesForCurrentDay.length > 0 && (
+        <select
+          value={match.venue}
+          onChange={(e) =>
+            onUpdateMatch(match.id, { venue: e.target.value })
+          }
+          title="この試合の会場を変更する"
+          className="rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:outline-none"
+        >
+          {venuesForCurrentDay.map((venue) => (
+            <option key={venue.id} value={venue.name}>
+              {venue.name || "会場名未設定"}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   tournamentDays: TournamentDay[];
   selectedDay: TournamentDay | undefined;
@@ -167,6 +224,11 @@ export function TimetableForm({
                       </option>
                     ))}
                   </select>
+                  <MatchMoveControl
+                    match={match}
+                    tournamentDays={tournamentDays}
+                    onUpdateMatch={onUpdateMatch}
+                  />
                   <label className="ml-auto flex shrink-0 items-center gap-1 text-xs text-gray-600">
                     <input
                       type="checkbox"
