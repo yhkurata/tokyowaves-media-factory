@@ -17,6 +17,7 @@ import { StickerProductionScreen } from "./components/sticker/StickerProductionS
 import { CharacterSettingsScreen } from "./components/sticker/CharacterSettingsScreen";
 import { useExpeditionGuideData } from "./state/useExpeditionGuideData";
 import { ExpeditionGuideScreen } from "./components/expedition/ExpeditionGuideScreen";
+import { InstagramAiScreen } from "./components/instagram-ai/InstagramAiScreen";
 import {
   buildBracketData,
   buildLeagueGroups,
@@ -42,13 +43,15 @@ type AppMode =
   | "tournament"
   | "sticker"
   | "character-settings"
-  | "expedition-guide";
+  | "expedition-guide"
+  | "instagram-ai";
 
 const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "tournament", label: "大会画像作成" },
   { id: "sticker", label: "スタンプ制作" },
   { id: "character-settings", label: "キャラクター設定" },
   { id: "expedition-guide", label: "遠征要項AI" },
+  { id: "instagram-ai", label: "Instagram AI" },
 ];
 
 // ?tool=expedition-guide のようなURLを直接開くと、そのタブが最初から
@@ -443,6 +446,8 @@ function App() {
         {mode === "expedition-guide" && (
           <ExpeditionGuideScreen data={expeditionGuideData} />
         )}
+
+        {mode === "instagram-ai" && <InstagramAiScreen />}
       </main>
     </div>
   );

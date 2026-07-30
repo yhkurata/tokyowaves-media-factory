@@ -1,0 +1,364 @@
+import type { Plugin } from "vite";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  getBrandContext,
+  updateBrandContext,
+  type BrandContextPayload,
+} from "./brandContextHandler.js";
+import {
+  listPostHistory,
+  createPostHistoryEntry,
+  updatePostHistoryEntry,
+  deletePostHistoryEntry,
+  type CreatePostHistoryPayload,
+  type UpdatePostHistoryPayload,
+} from "./instagramPostHistoryHandler.js";
+import {
+  runPropose,
+  estimateProposeCost,
+  type ProposeRequestBody,
+} from "./instagramProposeHandler.js";
+import {
+  listAgentProposals,
+  updateProposalApproval,
+  type UpdateApprovalPayload,
+} from "./instagramAgentProposalHandler.js";
+
+const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5MB（このAPIはJSONのみで十分な余裕）
+
+function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let received = 0;
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => {
+      received += chunk.length;
+      if (received > MAX_BODY_BYTES) {
+        reject(new Error("リクエストが大きすぎます。"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (received === 0) {
+        resolve(undefined);
+        return;
+      }
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf-8")));
+      } catch {
+        reject(new Error("リクエストの形式が不正です。"));
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(body === undefined ? "" : JSON.stringify(body));
+}
+
+const VALID_FORMATS = ["feed", "carousel", "reel", "story"];
+const VALID_CATEGORIES = ["教育系", "共感系", "大会・活動報告", "募集"];
+const VALID_STATUSES = [
+  "proposed",
+  "approved",
+  "rejected",
+  "image_created",
+  "posted",
+  "backfilled",
+];
+const VALID_APPROVAL_STATUSES = ["pending", "approved", "rejected", "revised"];
+
+function isBrandContextPayload(value: unknown): value is BrandContextPayload {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.operatingGuide === "string" &&
+    Array.isArray(v.brandColors) &&
+    Array.isArray(v.contentRatioTargets) &&
+    Array.isArray(v.kpiMetrics)
+  );
+}
+
+function isCreatePostHistoryPayload(
+  value: unknown,
+): value is CreatePostHistoryPayload {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.format === "string" &&
+    VALID_FORMATS.includes(v.format) &&
+    typeof v.category === "string" &&
+    VALID_CATEGORIES.includes(v.category) &&
+    typeof v.concept === "string" &&
+    v.concept.trim() !== "" &&
+    typeof v.status === "string" &&
+    VALID_STATUSES.includes(v.status)
+  );
+}
+
+function isUpdatePostHistoryPayload(
+  value: unknown,
+): value is UpdatePostHistoryPayload {
+  return typeof value === "object" && value !== null;
+}
+
+function isProposeRequestBody(value: unknown): value is ProposeRequestBody {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.instruction === "string" && v.instruction.trim() !== "";
+}
+
+function isUpdateApprovalPayload(
+  value: unknown,
+): value is UpdateApprovalPayload {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.approvalStatus === "string" &&
+    VALID_APPROVAL_STATUSES.includes(v.approvalStatus)
+  );
+}
+
+// ローカル開発サーバー用のミドルウェア。api/instagram-*.ts（Vercel Functions）と
+// 同じハンドラー関数を呼ぶだけで、ロジックの二重管理を避ける
+// （server/viteStickerApiPlugin.ts と同じ方針）。
+export function instagramAiApiPlugin(apiKey: string | undefined): Plugin {
+  return {
+    name: "tokyowaves-instagram-ai-api",
+    configureServer(server) {
+      server.middlewares.use("/api/instagram-brand-context", (req, res) => {
+        void handleBrandContext(req, res);
+      });
+      server.middlewares.use("/api/instagram-post-history", (req, res, next) => {
+        // "/api/instagram-post-history" にマウントされているため、req.url は
+        // このプレフィックスを除いたパス（例: "/", "/abc123"）になる。
+        const segments = (req.url ?? "").split("?")[0].split("/").filter(Boolean);
+        if (segments.length === 0) {
+          void handlePostHistoryList(req, res);
+          return;
+        }
+        if (segments.length === 1) {
+          void handlePostHistoryItem(req, res, segments[0]);
+          return;
+        }
+        next();
+      });
+      server.middlewares.use("/api/instagram-propose", (req, res) => {
+        void handlePropose(req, res, apiKey);
+      });
+      server.middlewares.use(
+        "/api/instagram-propose-estimate",
+        (req, res) => {
+          void handleProposeEstimate(req, res, apiKey);
+        },
+      );
+      server.middlewares.use(
+        "/api/instagram-agent-proposals",
+        (req, res, next) => {
+          const segments = (req.url ?? "").split("?")[0].split("/").filter(Boolean);
+          if (segments.length === 0) {
+            void handleAgentProposalList(req, res);
+            return;
+          }
+          if (segments.length === 1) {
+            void handleAgentProposalItem(req, res, segments[0]);
+            return;
+          }
+          next();
+        },
+      );
+    },
+  };
+}
+
+async function handleBrandContext(req: IncomingMessage, res: ServerResponse) {
+  try {
+    if (req.method === "GET") {
+      const result = await getBrandContext();
+      sendJson(res, 200, { result });
+      return;
+    }
+    if (req.method === "PUT") {
+      const body = await readJsonBody(req);
+      if (!isBrandContextPayload(body)) {
+        sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+        return;
+      }
+      const result = await updateBrandContext(body);
+      sendJson(res, 200, { result });
+      return;
+    }
+    sendJson(res, 405, { error: "GET・PUTのみ対応しています。" });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handlePostHistoryList(req: IncomingMessage, res: ServerResponse) {
+  try {
+    if (req.method === "GET") {
+      const result = await listPostHistory();
+      sendJson(res, 200, { result });
+      return;
+    }
+    if (req.method === "POST") {
+      const body = await readJsonBody(req);
+      if (!isCreatePostHistoryPayload(body)) {
+        sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+        return;
+      }
+      const result = await createPostHistoryEntry(body);
+      sendJson(res, 201, { result });
+      return;
+    }
+    sendJson(res, 405, { error: "GET・POSTのみ対応しています。" });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handlePostHistoryItem(
+  req: IncomingMessage,
+  res: ServerResponse,
+  id: string,
+) {
+  try {
+    if (req.method === "PATCH") {
+      const body = await readJsonBody(req);
+      if (!isUpdatePostHistoryPayload(body)) {
+        sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+        return;
+      }
+      const result = await updatePostHistoryEntry(id, body);
+      sendJson(res, 200, { result });
+      return;
+    }
+    if (req.method === "DELETE") {
+      await deletePostHistoryEntry(id);
+      sendJson(res, 204, undefined);
+      return;
+    }
+    sendJson(res, 405, { error: "PATCH・DELETEのみ対応しています。" });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handlePropose(
+  req: IncomingMessage,
+  res: ServerResponse,
+  apiKey: string | undefined,
+) {
+  if (req.method !== "POST") {
+    sendJson(res, 405, { error: "POSTメソッドのみ対応しています。" });
+    return;
+  }
+  if (!apiKey) {
+    sendJson(res, 500, {
+      error:
+        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isProposeRequestBody(body)) {
+      sendJson(res, 400, {
+        error: "リクエストの形式が不正です（instructionが必要です）。",
+      });
+      return;
+    }
+    const result = await runPropose(apiKey, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error:
+        err instanceof Error ? err.message : "提案生成中に不明なエラーが発生しました。",
+    });
+  }
+}
+
+// 一般ユーザー向け確認ダイアログ（「今回の推定料金：約○円」）用の見積もり取得。
+// count_tokensのみを呼ぶため課金は発生しない（管理者モードではフロント側で
+// この呼び出し自体をスキップする）。
+async function handleProposeEstimate(
+  req: IncomingMessage,
+  res: ServerResponse,
+  apiKey: string | undefined,
+) {
+  if (req.method !== "POST") {
+    sendJson(res, 405, { error: "POSTメソッドのみ対応しています。" });
+    return;
+  }
+  if (!apiKey) {
+    sendJson(res, 500, {
+      error:
+        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isProposeRequestBody(body)) {
+      sendJson(res, 400, {
+        error: "リクエストの形式が不正です（instructionが必要です）。",
+      });
+      return;
+    }
+    const result = await estimateProposeCost(apiKey, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handleAgentProposalList(req: IncomingMessage, res: ServerResponse) {
+  if (req.method !== "GET") {
+    sendJson(res, 405, { error: "GETのみ対応しています。" });
+    return;
+  }
+  try {
+    const result = await listAgentProposals();
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handleAgentProposalItem(
+  req: IncomingMessage,
+  res: ServerResponse,
+  id: string,
+) {
+  if (req.method !== "PATCH") {
+    sendJson(res, 405, { error: "PATCHのみ対応しています。" });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isUpdateApprovalPayload(body)) {
+      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+      return;
+    }
+    const result = await updateProposalApproval(id, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
+    });
+  }
+}

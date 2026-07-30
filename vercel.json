@@ -5,6 +5,9 @@
     },
     "api/sticker-plan.ts": {
       "maxDuration": 300
+    },
+    "api/instagram-propose.ts": {
+      "maxDuration": 300
     }
   }
 }
