@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  getInstagramCapabilities,
   listAgentProposals,
   proposeNextPost,
   estimateProposeCost,
@@ -41,6 +42,8 @@ export function ProposalScreen() {
   const [estimate, setEstimate] = useState<ProposeCostEstimate | null>(null);
   const [approving, setApproving] = useState(false);
   const [loadingLatest, setLoadingLatest] = useState(true);
+  const [openAIEnabled, setOpenAIEnabled] = useState(false);
+  const [loadingCapabilities, setLoadingCapabilities] = useState(true);
   const admin = isAdminMode();
 
   // 起動時、DBに保存済みの最新の提案（＝直近のAI呼び出し結果）をそのまま
@@ -54,6 +57,13 @@ export function ProposalScreen() {
         // 起動時の読み込み失敗は静かに諦める（「提案してもらう」で新規生成は可能なため）。
       })
       .finally(() => setLoadingLatest(false));
+  }, []);
+
+  useEffect(() => {
+    getInstagramCapabilities()
+      .then((capabilities) => setOpenAIEnabled(capabilities.openaiEnabled))
+      .catch(() => setOpenAIEnabled(false))
+      .finally(() => setLoadingCapabilities(false));
   }, []);
 
   const runPropose = async () => {
@@ -153,9 +163,19 @@ export function ProposalScreen() {
                 value="openai"
                 checked={provider === "openai"}
                 onChange={() => setProvider("openai")}
-                disabled={requestState !== "idle" && requestState !== "error"}
+                disabled={
+                  !openAIEnabled ||
+                  loadingCapabilities ||
+                  (requestState !== "idle" && requestState !== "error")
+                }
               />
-              GPT（比較版）
+              GPT（
+              {loadingCapabilities
+                ? "確認中"
+                : openAIEnabled
+                  ? "比較版"
+                  : "現在停止中"}
+              ）
             </label>
           </div>
         </fieldset>

@@ -23,7 +23,10 @@ import {
   updateProposalApproval,
   type UpdateApprovalPayload,
 } from "./instagramAgentProposalHandler.js";
-import { assertInstagramProviderEnabled } from "./instagramProviderAccess.js";
+import {
+  assertInstagramProviderEnabled,
+  isOpenAIInstagramEnabled,
+} from "./instagramProviderAccess.js";
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5MB（このAPIはJSONのみで十分な余裕）
 
@@ -138,6 +141,7 @@ function isUpdateApprovalPayload(
 // ローカル開発サーバー用のミドルウェア。api/instagram/[...path].ts（Vercel
 // Function、1つのcatch-allにまとめてある）と同じハンドラー関数を呼ぶだけで、
 // ロジックの二重管理を避ける。パス構成も本番と完全に一致させてある：
+//   GET          /api/instagram/capabilities
 //   POST         /api/instagram/propose             （body.modeで"run"/"estimate"を切り替え）
 //   GET, PUT     /api/instagram/brand-context
 //   GET, POST    /api/instagram/post-history
@@ -154,6 +158,16 @@ export function instagramAiApiPlugin(apiKey: string | undefined): Plugin {
         const segments = (req.url ?? "").split("?")[0].split("/").filter(Boolean);
         const [resource, id] = segments;
 
+        if (resource === "capabilities" && segments.length === 1) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "GETメソッドのみ対応しています。" });
+            return;
+          }
+          sendJson(res, 200, {
+            result: { openaiEnabled: isOpenAIInstagramEnabled() },
+          });
+          return;
+        }
         if (resource === "propose" && segments.length === 1) {
           void handlePropose(req, res, apiKey);
           return;

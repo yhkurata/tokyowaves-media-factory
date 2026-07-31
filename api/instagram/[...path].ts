@@ -22,7 +22,10 @@ import {
   updateProposalApproval,
   type UpdateApprovalPayload,
 } from "../../server/instagramAgentProposalHandler.js";
-import { assertInstagramProviderEnabled } from "../../server/instagramProviderAccess.js";
+import {
+  assertInstagramProviderEnabled,
+  isOpenAIInstagramEnabled,
+} from "../../server/instagramProviderAccess.js";
 import { instagramApiPathSegments } from "../../server/instagramApiPath.js";
 
 // Instagram AI機能の全エンドポイントを1つのVercel Functionにまとめたcatch-all
@@ -125,6 +128,16 @@ export default async function handler(
   const [resource, id] = segments;
 
   try {
+    if (resource === "capabilities" && segments.length === 1) {
+      if (req.method !== "GET") {
+        sendError(res, 405, "GETメソッドのみ対応しています。");
+        return;
+      }
+      res.status(200).json({
+        result: { openaiEnabled: isOpenAIInstagramEnabled() },
+      });
+      return;
+    }
     if (resource === "propose" && segments.length === 1) {
       await handlePropose(req, res);
       return;

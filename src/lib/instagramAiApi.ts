@@ -18,6 +18,14 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return body.result as T;
 }
 
+export function getInstagramCapabilities(): Promise<{
+  openaiEnabled: boolean;
+}> {
+  return fetch("/api/instagram/capabilities").then((res) =>
+    handleResponse(res),
+  );
+}
+
 export function getBrandContext(): Promise<BrandContext> {
   return fetch("/api/instagram/brand-context").then((res) => handleResponse(res));
 }
