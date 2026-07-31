@@ -1,8 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   runStickerPlan,
+  estimateStickerPlan,
   type StickerPlanRequestBody,
 } from "../server/stickerPlanHandler.js";
+
+// Vercel Hobbyプランの関数数上限対策として、実行(mode:"run")と見積もり
+// (mode:"estimate")を1つの関数にまとめている。
+
+interface RequestBody extends StickerPlanRequestBody {
+  mode?: "run" | "estimate";
+}
 
 function isStickerImage(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
@@ -14,9 +22,7 @@ function isStickerImage(value: unknown): boolean {
   );
 }
 
-function isStickerPlanRequestBody(
-  value: unknown,
-): value is StickerPlanRequestBody {
+function isRequestBody(value: unknown): value is RequestBody {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -27,7 +33,8 @@ function isStickerPlanRequestBody(
     v.characterSettings !== null &&
     Array.isArray(v.referenceImages) &&
     v.referenceImages.every(isStickerImage) &&
-    Array.isArray(v.existingCandidates)
+    Array.isArray(v.existingCandidates) &&
+    (v.mode === undefined || v.mode === "run" || v.mode === "estimate")
   );
 }
 
@@ -50,12 +57,17 @@ export default async function handler(
   }
 
   const body: unknown = req.body;
-  if (!isStickerPlanRequestBody(body)) {
+  if (!isRequestBody(body)) {
     res.status(400).json({ error: "リクエストの形式が不正です。" });
     return;
   }
 
   try {
+    if (body.mode === "estimate") {
+      const result = await estimateStickerPlan(apiKey, body);
+      res.status(200).json({ result });
+      return;
+    }
     const result = await runStickerPlan(apiKey, body);
     res.status(200).json({ result });
   } catch (err) {

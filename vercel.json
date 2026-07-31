@@ -6,7 +6,7 @@
     "api/sticker-plan.ts": {
       "maxDuration": 300
     },
-    "api/instagram-propose.ts": {
+    "api/instagram/[...path].ts": {
       "maxDuration": 300
     }
   }

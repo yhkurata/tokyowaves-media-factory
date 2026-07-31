@@ -27,10 +27,10 @@ async function fetchExtractEstimate(
       dataBase64: (await fileToDataUrl(file)).split(",")[1] ?? "",
     })),
   );
-  const res = await fetch("/api/extract-estimate", {
+  const res = await fetch("/api/extract", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ files: encoded }),
+    body: JSON.stringify({ mode: "estimate", files: encoded }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

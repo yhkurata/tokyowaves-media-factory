@@ -58,19 +58,34 @@ function isStickerImage(value: unknown): boolean {
   );
 }
 
+function isMode(value: unknown): value is "run" | "estimate" | undefined {
+  return value === undefined || value === "run" || value === "estimate";
+}
+
+interface StickerRecognizeRequest extends StickerRecognizeRequestBody {
+  mode?: "run" | "estimate";
+}
+
 function isStickerRecognizeRequestBody(
   value: unknown,
-): value is StickerRecognizeRequestBody {
+): value is StickerRecognizeRequest {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
-    Array.isArray(v.images) && v.images.length > 0 && v.images.every(isStickerImage)
+    Array.isArray(v.images) &&
+    v.images.length > 0 &&
+    v.images.every(isStickerImage) &&
+    isMode(v.mode)
   );
+}
+
+interface StickerPlanRequest extends StickerPlanRequestBody {
+  mode?: "run" | "estimate";
 }
 
 function isStickerPlanRequestBody(
   value: unknown,
-): value is StickerPlanRequestBody {
+): value is StickerPlanRequest {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -81,20 +96,33 @@ function isStickerPlanRequestBody(
     v.characterSettings !== null &&
     Array.isArray(v.referenceImages) &&
     v.referenceImages.every(isStickerImage) &&
-    Array.isArray(v.existingCandidates)
+    Array.isArray(v.existingCandidates) &&
+    isMode(v.mode)
   );
+}
+
+interface StickerCharacterAnalysisRequest
+  extends StickerCharacterAnalysisRequestBody {
+  mode?: "run" | "estimate";
 }
 
 function isStickerCharacterAnalysisRequestBody(
   value: unknown,
-): value is StickerCharacterAnalysisRequestBody {
+): value is StickerCharacterAnalysisRequest {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
-    Array.isArray(v.images) && v.images.length > 0 && v.images.every(isStickerImage)
+    Array.isArray(v.images) &&
+    v.images.length > 0 &&
+    v.images.every(isStickerImage) &&
+    isMode(v.mode)
   );
 }
 
+// ローカル開発サーバー用のミドルウェア。api/sticker-*.ts（Vercel Functions）と
+// 同じハンドラー関数を呼ぶだけで、ロジックの二重管理を避ける。
+// 本番同様、実行(mode:"run")と見積もり(mode:"estimate")は1つのエンドポイントに
+// まとめてある（Vercel Hobbyプランの関数数上限対策）。
 export function stickerApiPlugin(apiKey: string | undefined): Plugin {
   return {
     name: "tokyowaves-sticker-api",
@@ -106,16 +134,6 @@ export function stickerApiPlugin(apiKey: string | undefined): Plugin {
         }
         void handleStickerRecognize(req, res, apiKey);
       });
-      server.middlewares.use(
-        "/api/sticker-recognize-estimate",
-        (req, res, next) => {
-          if (req.method !== "POST") {
-            next();
-            return;
-          }
-          void handleStickerRecognizeEstimate(req, res, apiKey);
-        },
-      );
       server.middlewares.use("/api/sticker-plan", (req, res, next) => {
         if (req.method !== "POST") {
           next();
@@ -124,16 +142,6 @@ export function stickerApiPlugin(apiKey: string | undefined): Plugin {
         void handleStickerPlan(req, res, apiKey);
       });
       server.middlewares.use(
-        "/api/sticker-plan-estimate",
-        (req, res, next) => {
-          if (req.method !== "POST") {
-            next();
-            return;
-          }
-          void handleStickerPlanEstimate(req, res, apiKey);
-        },
-      );
-      server.middlewares.use(
         "/api/sticker-character-analysis",
         (req, res, next) => {
           if (req.method !== "POST") {
@@ -141,16 +149,6 @@ export function stickerApiPlugin(apiKey: string | undefined): Plugin {
             return;
           }
           void handleStickerCharacterAnalysis(req, res, apiKey);
-        },
-      );
-      server.middlewares.use(
-        "/api/sticker-character-analysis-estimate",
-        (req, res, next) => {
-          if (req.method !== "POST") {
-            next();
-            return;
-          }
-          void handleStickerCharacterAnalysisEstimate(req, res, apiKey);
         },
       );
     },
@@ -173,6 +171,11 @@ async function handleStickerRecognize(
     const body = await readJsonBody(req);
     if (!isStickerRecognizeRequestBody(body)) {
       sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+      return;
+    }
+    if (body.mode === "estimate") {
+      const result = await estimateStickerRecognize(apiKey, body);
+      sendJson(res, 200, { result });
       return;
     }
     const result = await runStickerRecognize(apiKey, body);
@@ -202,6 +205,11 @@ async function handleStickerPlan(
       sendJson(res, 400, { error: "リクエストの形式が不正です。" });
       return;
     }
+    if (body.mode === "estimate") {
+      const result = await estimateStickerPlan(apiKey, body);
+      sendJson(res, 200, { result });
+      return;
+    }
     const result = await runStickerPlan(apiKey, body);
     sendJson(res, 200, { result });
   } catch (err) {
@@ -229,96 +237,16 @@ async function handleStickerCharacterAnalysis(
       sendJson(res, 400, { error: "リクエストの形式が不正です。" });
       return;
     }
+    if (body.mode === "estimate") {
+      const result = await estimateStickerCharacterAnalysis(apiKey, body);
+      sendJson(res, 200, { result });
+      return;
+    }
     const result = await runStickerCharacterAnalysis(apiKey, body);
     sendJson(res, 200, { result });
   } catch (err) {
     sendJson(res, 500, {
       error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
-    });
-  }
-}
-
-// 以下3つは一般ユーザー向け実行前確認ダイアログ用の見積もりエンドポイント。
-// count_tokensのみを呼ぶため課金は発生しない（管理者モードではフロント側で
-// この呼び出し自体をスキップする）。
-
-async function handleStickerRecognizeEstimate(
-  req: IncomingMessage,
-  res: ServerResponse,
-  apiKey: string | undefined,
-) {
-  if (!apiKey) {
-    sendJson(res, 500, {
-      error:
-        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
-    });
-    return;
-  }
-  try {
-    const body = await readJsonBody(req);
-    if (!isStickerRecognizeRequestBody(body)) {
-      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
-      return;
-    }
-    const result = await estimateStickerRecognize(apiKey, body);
-    sendJson(res, 200, { result });
-  } catch (err) {
-    sendJson(res, 500, {
-      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
-    });
-  }
-}
-
-async function handleStickerPlanEstimate(
-  req: IncomingMessage,
-  res: ServerResponse,
-  apiKey: string | undefined,
-) {
-  if (!apiKey) {
-    sendJson(res, 500, {
-      error:
-        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
-    });
-    return;
-  }
-  try {
-    const body = await readJsonBody(req);
-    if (!isStickerPlanRequestBody(body)) {
-      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
-      return;
-    }
-    const result = await estimateStickerPlan(apiKey, body);
-    sendJson(res, 200, { result });
-  } catch (err) {
-    sendJson(res, 500, {
-      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
-    });
-  }
-}
-
-async function handleStickerCharacterAnalysisEstimate(
-  req: IncomingMessage,
-  res: ServerResponse,
-  apiKey: string | undefined,
-) {
-  if (!apiKey) {
-    sendJson(res, 500, {
-      error:
-        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
-    });
-    return;
-  }
-  try {
-    const body = await readJsonBody(req);
-    if (!isStickerCharacterAnalysisRequestBody(body)) {
-      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
-      return;
-    }
-    const result = await estimateStickerCharacterAnalysis(apiKey, body);
-    sendJson(res, 200, { result });
-  } catch (err) {
-    sendJson(res, 500, {
-      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
     });
   }
 }

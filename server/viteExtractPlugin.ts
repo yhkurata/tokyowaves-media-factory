@@ -32,6 +32,10 @@ function readJsonBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
+interface RequestBody extends ExtractRequestBody {
+  mode?: "run" | "estimate";
+}
+
 function isExtractRequestFile(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
@@ -44,10 +48,15 @@ function isExtractRequestFile(value: unknown): boolean {
   );
 }
 
-function isExtractRequestBody(value: unknown): value is ExtractRequestBody {
+function isRequestBody(value: unknown): value is RequestBody {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return Array.isArray(v.files) && v.files.length > 0 && v.files.every(isExtractRequestFile);
+  return (
+    Array.isArray(v.files) &&
+    v.files.length > 0 &&
+    v.files.every(isExtractRequestFile) &&
+    (v.mode === undefined || v.mode === "run" || v.mode === "estimate")
+  );
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
@@ -56,6 +65,8 @@ function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+// 本番（api/extract.ts）と同様、実行(mode:"run")と見積もり(mode:"estimate")を
+// 1つのエンドポイントにまとめている（Vercel Hobbyプランの関数数上限対策）。
 export function extractApiPlugin(apiKey: string | undefined): Plugin {
   return {
     name: "tokyowaves-extract-api",
@@ -66,13 +77,6 @@ export function extractApiPlugin(apiKey: string | undefined): Plugin {
           return;
         }
         handleExtractRequest(req, res, apiKey);
-      });
-      server.middlewares.use("/api/extract-estimate", (req, res, next) => {
-        if (req.method !== "POST") {
-          next();
-          return;
-        }
-        handleExtractEstimateRequest(req, res, apiKey);
       });
     },
   };
@@ -92,10 +96,15 @@ async function handleExtractRequest(
   }
   try {
     const body = await readJsonBody(req);
-    if (!isExtractRequestBody(body)) {
+    if (!isRequestBody(body)) {
       sendJson(res, 400, {
         error: "リクエストの形式が不正です（filesが1件以上必要です）。",
       });
+      return;
+    }
+    if (body.mode === "estimate") {
+      const result = await estimateExtraction(apiKey, body);
+      sendJson(res, 200, { result });
       return;
     }
     const result = await runExtraction(apiKey, body);
@@ -103,37 +112,6 @@ async function handleExtractRequest(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "解析中に不明なエラーが発生しました。";
-    sendJson(res, 500, { error: message });
-  }
-}
-
-// 一般ユーザー向け確認ダイアログ用の見積もり取得。count_tokensのみを呼ぶため
-// 課金は発生しない（管理者モードではフロント側でこの呼び出し自体をスキップする）。
-async function handleExtractEstimateRequest(
-  req: IncomingMessage,
-  res: ServerResponse,
-  apiKey: string | undefined,
-) {
-  if (!apiKey) {
-    sendJson(res, 500, {
-      error:
-        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
-    });
-    return;
-  }
-  try {
-    const body = await readJsonBody(req);
-    if (!isExtractRequestBody(body)) {
-      sendJson(res, 400, {
-        error: "リクエストの形式が不正です（filesが1件以上必要です）。",
-      });
-      return;
-    }
-    const result = await estimateExtraction(apiKey, body);
-    sendJson(res, 200, { result });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。";
     sendJson(res, 500, { error: message });
   }
 }

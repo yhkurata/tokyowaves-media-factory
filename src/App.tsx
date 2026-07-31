@@ -262,7 +262,7 @@ function App() {
       const response = await fetch("/api/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: encoded }),
+        body: JSON.stringify({ mode: "run", files: encoded }),
       });
       const payload = await response.json();
       if (!response.ok) {

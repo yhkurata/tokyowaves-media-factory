@@ -31,20 +31,28 @@ export async function recognizeStickerPhrases(
   const res = await fetch("/api/sticker-recognize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ images: imageDataUrls.map(toImagePayload) }),
+    body: JSON.stringify({
+      mode: "run",
+      images: imageDataUrls.map(toImagePayload),
+    }),
   });
   const result = await handleResponse<{ stickers: RecognizedSticker[] }>(res);
   return result.stickers;
 }
 
 // 実行前確認ダイアログ用。count_tokensのみを呼ぶため課金は発生しない。
+// 実行(mode:"run")と同じ /api/sticker-recognize エンドポイントにまとめてある
+// （Vercel Hobbyプランの関数数上限対策）。
 export async function estimateStickerRecognizeCost(
   imageDataUrls: string[],
 ): Promise<ApiCallCostEstimate> {
-  const res = await fetch("/api/sticker-recognize-estimate", {
+  const res = await fetch("/api/sticker-recognize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ images: imageDataUrls.map(toImagePayload) }),
+    body: JSON.stringify({
+      mode: "estimate",
+      images: imageDataUrls.map(toImagePayload),
+    }),
   });
   return handleResponse<ApiCallCostEstimate>(res);
 }
@@ -61,19 +69,27 @@ export async function analyzeCharacterFromImages(
   const res = await fetch("/api/sticker-character-analysis", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ images: imageDataUrls.map(toImagePayload) }),
+    body: JSON.stringify({
+      mode: "run",
+      images: imageDataUrls.map(toImagePayload),
+    }),
   });
   return handleResponse<CharacterAnalysisResult>(res);
 }
 
 // 実行前確認ダイアログ用。count_tokensのみを呼ぶため課金は発生しない。
+// 実行(mode:"run")と同じ /api/sticker-character-analysis エンドポイントに
+// まとめてある（Vercel Hobbyプランの関数数上限対策）。
 export async function estimateCharacterAnalysisCost(
   imageDataUrls: string[],
 ): Promise<ApiCallCostEstimate> {
-  const res = await fetch("/api/sticker-character-analysis-estimate", {
+  const res = await fetch("/api/sticker-character-analysis", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ images: imageDataUrls.map(toImagePayload) }),
+    body: JSON.stringify({
+      mode: "estimate",
+      images: imageDataUrls.map(toImagePayload),
+    }),
   });
   return handleResponse<ApiCallCostEstimate>(res);
 }
@@ -90,6 +106,7 @@ export async function generateStickerPlans(params: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      mode: "run",
       instruction: params.instruction,
       requestedCount: params.requestedCount,
       characterSettings: params.characterSettings,
@@ -102,6 +119,8 @@ export async function generateStickerPlans(params: {
 }
 
 // 実行前確認ダイアログ用。count_tokensのみを呼ぶため課金は発生しない。
+// 実行(mode:"run")と同じ /api/sticker-plan エンドポイントにまとめてある
+// （Vercel Hobbyプランの関数数上限対策）。
 export async function estimateStickerPlanCost(params: {
   instruction: string;
   requestedCount: number;
@@ -109,10 +128,11 @@ export async function estimateStickerPlanCost(params: {
   referenceImageDataUrls: string[];
   existingCandidates: { phrase: string; scene: string }[];
 }): Promise<ApiCallCostEstimate> {
-  const res = await fetch("/api/sticker-plan-estimate", {
+  const res = await fetch("/api/sticker-plan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      mode: "estimate",
       instruction: params.instruction,
       requestedCount: params.requestedCount,
       characterSettings: params.characterSettings,

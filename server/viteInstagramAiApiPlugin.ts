@@ -106,10 +106,18 @@ function isUpdatePostHistoryPayload(
   return typeof value === "object" && value !== null;
 }
 
-function isProposeRequestBody(value: unknown): value is ProposeRequestBody {
+interface ProposeRequest extends ProposeRequestBody {
+  mode?: "run" | "estimate";
+}
+
+function isProposeRequestBody(value: unknown): value is ProposeRequest {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return typeof v.instruction === "string" && v.instruction.trim() !== "";
+  return (
+    typeof v.instruction === "string" &&
+    v.instruction.trim() !== "" &&
+    (v.mode === undefined || v.mode === "run" || v.mode === "estimate")
+  );
 }
 
 function isUpdateApprovalPayload(
@@ -123,54 +131,51 @@ function isUpdateApprovalPayload(
   );
 }
 
-// ローカル開発サーバー用のミドルウェア。api/instagram-*.ts（Vercel Functions）と
-// 同じハンドラー関数を呼ぶだけで、ロジックの二重管理を避ける
-// （server/viteStickerApiPlugin.ts と同じ方針）。
+// ローカル開発サーバー用のミドルウェア。api/instagram/[...path].ts（Vercel
+// Function、1つのcatch-allにまとめてある）と同じハンドラー関数を呼ぶだけで、
+// ロジックの二重管理を避ける。パス構成も本番と完全に一致させてある：
+//   POST         /api/instagram/propose             （body.modeで"run"/"estimate"を切り替え）
+//   GET, PUT     /api/instagram/brand-context
+//   GET, POST    /api/instagram/post-history
+//   PATCH, DELETE /api/instagram/post-history/{id}
+//   GET          /api/instagram/agent-proposals
+//   PATCH        /api/instagram/agent-proposals/{id}
 export function instagramAiApiPlugin(apiKey: string | undefined): Plugin {
   return {
     name: "tokyowaves-instagram-ai-api",
     configureServer(server) {
-      server.middlewares.use("/api/instagram-brand-context", (req, res) => {
-        void handleBrandContext(req, res);
-      });
-      server.middlewares.use("/api/instagram-post-history", (req, res, next) => {
-        // "/api/instagram-post-history" にマウントされているため、req.url は
-        // このプレフィックスを除いたパス（例: "/", "/abc123"）になる。
+      server.middlewares.use("/api/instagram", (req, res, next) => {
+        // "/api/instagram" にマウントされているため、req.url はこのプレフィックスを
+        // 除いたパス（例: "/propose", "/post-history/abc123"）になる。
         const segments = (req.url ?? "").split("?")[0].split("/").filter(Boolean);
-        if (segments.length === 0) {
+        const [resource, id] = segments;
+
+        if (resource === "propose" && segments.length === 1) {
+          void handlePropose(req, res, apiKey);
+          return;
+        }
+        if (resource === "brand-context" && segments.length === 1) {
+          void handleBrandContext(req, res);
+          return;
+        }
+        if (resource === "post-history" && segments.length === 1) {
           void handlePostHistoryList(req, res);
           return;
         }
-        if (segments.length === 1) {
-          void handlePostHistoryItem(req, res, segments[0]);
+        if (resource === "post-history" && segments.length === 2) {
+          void handlePostHistoryItem(req, res, id);
+          return;
+        }
+        if (resource === "agent-proposals" && segments.length === 1) {
+          void handleAgentProposalList(req, res);
+          return;
+        }
+        if (resource === "agent-proposals" && segments.length === 2) {
+          void handleAgentProposalItem(req, res, id);
           return;
         }
         next();
       });
-      server.middlewares.use("/api/instagram-propose", (req, res) => {
-        void handlePropose(req, res, apiKey);
-      });
-      server.middlewares.use(
-        "/api/instagram-propose-estimate",
-        (req, res) => {
-          void handleProposeEstimate(req, res, apiKey);
-        },
-      );
-      server.middlewares.use(
-        "/api/instagram-agent-proposals",
-        (req, res, next) => {
-          const segments = (req.url ?? "").split("?")[0].split("/").filter(Boolean);
-          if (segments.length === 0) {
-            void handleAgentProposalList(req, res);
-            return;
-          }
-          if (segments.length === 1) {
-            void handleAgentProposalItem(req, res, segments[0]);
-            return;
-          }
-          next();
-        },
-      );
     },
   };
 }
@@ -278,48 +283,17 @@ async function handlePropose(
       });
       return;
     }
+    if (body.mode === "estimate") {
+      const result = await estimateProposeCost(apiKey, body);
+      sendJson(res, 200, { result });
+      return;
+    }
     const result = await runPropose(apiKey, body);
     sendJson(res, 200, { result });
   } catch (err) {
     sendJson(res, 500, {
       error:
         err instanceof Error ? err.message : "提案生成中に不明なエラーが発生しました。",
-    });
-  }
-}
-
-// 一般ユーザー向け確認ダイアログ（「今回の推定料金：約○円」）用の見積もり取得。
-// count_tokensのみを呼ぶため課金は発生しない（管理者モードではフロント側で
-// この呼び出し自体をスキップする）。
-async function handleProposeEstimate(
-  req: IncomingMessage,
-  res: ServerResponse,
-  apiKey: string | undefined,
-) {
-  if (req.method !== "POST") {
-    sendJson(res, 405, { error: "POSTメソッドのみ対応しています。" });
-    return;
-  }
-  if (!apiKey) {
-    sendJson(res, 500, {
-      error:
-        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
-    });
-    return;
-  }
-  try {
-    const body = await readJsonBody(req);
-    if (!isProposeRequestBody(body)) {
-      sendJson(res, 400, {
-        error: "リクエストの形式が不正です（instructionが必要です）。",
-      });
-      return;
-    }
-    const result = await estimateProposeCost(apiKey, body);
-    sendJson(res, 200, { result });
-  } catch (err) {
-    sendJson(res, 500, {
-      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
     });
   }
 }
