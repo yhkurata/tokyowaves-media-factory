@@ -12,7 +12,7 @@ import {
   buildProposalUserMessage,
   buildPostHistorySummaryText,
 } from "./instagramProposalPrompt.js";
-import { calculateUsageCost, estimateCostFromTokenCounts } from "./anthropicPricing.js";
+import { calculateUsageCost, estimateApiCallCost } from "./anthropicPricing.js";
 import { getAverageOutputTokens } from "./instagramAgentProposalHandler.js";
 
 const DEFAULT_MODEL = "claude-opus-4-8";
@@ -208,33 +208,26 @@ export async function estimateProposeCost(
   }
 
   const { systemPrompt, userMessage } = await buildPromptParts(body.instruction);
-
-  const client = new Anthropic({ apiKey });
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
-  let counted;
+  const historicalAverage = await getAverageOutputTokens();
+  const estimatedOutputTokens = historicalAverage ?? DEFAULT_OUTPUT_TOKEN_ESTIMATE;
+
+  let estimate;
   try {
-    counted = await client.messages.countTokens({
+    estimate = await estimateApiCallCost(
+      apiKey,
       model,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    });
+      systemPrompt,
+      [{ role: "user", content: userMessage }],
+      estimatedOutputTokens,
+    );
   } catch (err) {
     throw new Error(friendlyAnthropicErrorMessage(err));
   }
 
-  const historicalAverage = await getAverageOutputTokens();
-  const estimatedOutputTokens = historicalAverage ?? DEFAULT_OUTPUT_TOKEN_ESTIMATE;
-  const { costJpy } = estimateCostFromTokenCounts(
-    model,
-    counted.input_tokens,
-    estimatedOutputTokens,
-  );
-
   return {
-    costJpy,
-    estimatedInputTokens: counted.input_tokens,
-    estimatedOutputTokens,
+    ...estimate,
     isOutputEstimateFromHistory: historicalAverage !== null,
   };
 }

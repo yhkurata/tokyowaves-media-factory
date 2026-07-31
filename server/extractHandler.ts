@@ -5,6 +5,7 @@ import {
 } from "./extractionSchema.js";
 import { EXTRACTION_SYSTEM_PROMPT } from "./extractionPrompt.js";
 import { friendlyAnthropicErrorMessage } from "./anthropicErrors.js";
+import { estimateApiCallCost, type ApiCallCostEstimate } from "./anthropicPricing.js";
 
 export type SupportedMediaType = "image/png" | "image/jpeg" | "application/pdf";
 
@@ -19,6 +20,9 @@ export interface ExtractRequestBody {
 
 const DEFAULT_MODEL = "claude-opus-4-8";
 const MAX_FILES = 8;
+// 実行実績を記録するDBが無い（localStorageのみの機能のため）ので、履歴平均では
+// なく固定の控えめな既定値を使う。試合数の多い複数日大会でも収まる程度の見積もり。
+const OUTPUT_TOKEN_ESTIMATE = 12000;
 
 function toContentBlock(file: ExtractRequestFile) {
   return file.mediaType === "application/pdf"
@@ -40,24 +44,58 @@ function toContentBlock(file: ExtractRequestFile) {
       };
 }
 
-export async function runExtraction(
-  apiKey: string,
-  body: ExtractRequestBody,
-): Promise<ExtractionResult> {
+function buildMessageContent(body: ExtractRequestBody) {
+  const instructionText =
+    body.files.length > 1
+      ? `${body.files.length}件の資料から大会情報を抽出し、指定されたJSON形式で返してください。資料間で試合No.が重複していても、無条件に統合しないでください。それが「同じ試合について異なる情報が書かれた資料同士（統合すべきケースA）」なのか「別の日・別の会場の独立したタイムテーブル（統合してはいけないケースB）」なのかを、システムプロンプトの判別基準に従って個別に判断してください。`
+      : "この資料から大会情報を抽出し、指定されたJSON形式で返してください。";
+
+  return [
+    ...body.files.map(toContentBlock),
+    {
+      type: "text" as const,
+      text: instructionText,
+    },
+  ];
+}
+
+function validateRequestBody(body: ExtractRequestBody) {
   if (body.files.length === 0) {
     throw new Error("ファイルが指定されていません。");
   }
   if (body.files.length > MAX_FILES) {
     throw new Error(`一度に解析できるのは最大${MAX_FILES}ファイルまでです。`);
   }
+}
+
+// 一般ユーザー向けの実行前確認ダイアログ（「今回の推定料金：約○円」）用。
+export async function estimateExtraction(
+  apiKey: string,
+  body: ExtractRequestBody,
+): Promise<ApiCallCostEstimate> {
+  validateRequestBody(body);
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  try {
+    return await estimateApiCallCost(
+      apiKey,
+      model,
+      EXTRACTION_SYSTEM_PROMPT,
+      [{ role: "user", content: buildMessageContent(body) }],
+      OUTPUT_TOKEN_ESTIMATE,
+    );
+  } catch (err) {
+    throw new Error(friendlyAnthropicErrorMessage(err));
+  }
+}
+
+export async function runExtraction(
+  apiKey: string,
+  body: ExtractRequestBody,
+): Promise<ExtractionResult> {
+  validateRequestBody(body);
 
   const client = new Anthropic({ apiKey });
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
-
-  const instructionText =
-    body.files.length > 1
-      ? `${body.files.length}件の資料から大会情報を抽出し、指定されたJSON形式で返してください。資料間で試合No.が重複していても、無条件に統合しないでください。それが「同じ試合について異なる情報が書かれた資料同士（統合すべきケースA）」なのか「別の日・別の会場の独立したタイムテーブル（統合してはいけないケースB）」なのかを、システムプロンプトの判別基準に従って個別に判断してください。`
-      : "この資料から大会情報を抽出し、指定されたJSON形式で返してください。";
 
   let response;
   try {
@@ -76,13 +114,7 @@ export async function runExtraction(
       messages: [
         {
           role: "user",
-          content: [
-            ...body.files.map(toContentBlock),
-            {
-              type: "text",
-              text: instructionText,
-            },
-          ],
+          content: buildMessageContent(body),
         },
       ],
       output_config: {

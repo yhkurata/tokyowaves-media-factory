@@ -1,6 +1,10 @@
 import type { Plugin } from "vite";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { runExtraction, type ExtractRequestBody } from "./extractHandler.js";
+import {
+  runExtraction,
+  estimateExtraction,
+  type ExtractRequestBody,
+} from "./extractHandler.js";
 
 const MAX_BODY_BYTES = 150 * 1024 * 1024; // 150MB（base64込み・最大8ファイル添付を考慮）
 
@@ -63,6 +67,13 @@ export function extractApiPlugin(apiKey: string | undefined): Plugin {
         }
         handleExtractRequest(req, res, apiKey);
       });
+      server.middlewares.use("/api/extract-estimate", (req, res, next) => {
+        if (req.method !== "POST") {
+          next();
+          return;
+        }
+        handleExtractEstimateRequest(req, res, apiKey);
+      });
     },
   };
 }
@@ -92,6 +103,37 @@ async function handleExtractRequest(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "解析中に不明なエラーが発生しました。";
+    sendJson(res, 500, { error: message });
+  }
+}
+
+// 一般ユーザー向け確認ダイアログ用の見積もり取得。count_tokensのみを呼ぶため
+// 課金は発生しない（管理者モードではフロント側でこの呼び出し自体をスキップする）。
+async function handleExtractEstimateRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  apiKey: string | undefined,
+) {
+  if (!apiKey) {
+    sendJson(res, 500, {
+      error:
+        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isExtractRequestBody(body)) {
+      sendJson(res, 400, {
+        error: "リクエストの形式が不正です（filesが1件以上必要です）。",
+      });
+      return;
+    }
+    const result = await estimateExtraction(apiKey, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。";
     sendJson(res, 500, { error: message });
   }
 }

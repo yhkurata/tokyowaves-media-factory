@@ -1,3 +1,5 @@
+import Anthropic from "@anthropic-ai/sdk";
+
 // Claude APIの1リクエストあたりの実コストを、レスポンスのusage（実測トークン数）から
 // 計算するための料金表。金額はAnthropicの公式1MトークンあたりのUSD単価。
 // 新しいモデルを使う場合はここに追記する（未掲載モデルはコスト計算不能として扱う）。
@@ -107,4 +109,39 @@ export function estimateCostFromTokenCounts(
     (estimatedInputTokens / 1_000_000) * pricing.inputPerMTok +
     (estimatedOutputTokens / 1_000_000) * pricing.outputPerMTok;
   return { costJpy: costUsd * usdJpyRate() };
+}
+
+export interface ApiCallCostEstimate {
+  costJpy: number | null;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
+}
+
+// 実行前の確認ダイアログ用の共通ヘルパー。実際に送信する予定のsystem/messagesを
+// そのままcount_tokensにかけて入力トークン数を実測し、出力トークン数だけ
+// 呼び出し側が渡した見積もり値（固定値・過去実績の平均など機能ごとに異なる）を使う。
+// count_tokensは生成を伴わないため、この呼び出し自体には課金が発生しない。
+//
+// 大会画像作成・スタンプ制作・Instagram AIなど、全てのAPI呼び出し機能が
+// このヘルパーを共通で使うことで、見積もりロジック・為替レート・料金表が
+// 1箇所に保たれる（機能ごとに別々の概算式を持たない）。
+export async function estimateApiCallCost(
+  apiKey: string,
+  model: string,
+  system: string | Array<Anthropic.TextBlockParam>,
+  messages: Array<Anthropic.MessageParam>,
+  estimatedOutputTokens: number,
+): Promise<ApiCallCostEstimate> {
+  const client = new Anthropic({ apiKey });
+  const counted = await client.messages.countTokens({ model, system, messages });
+  const { costJpy } = estimateCostFromTokenCounts(
+    model,
+    counted.input_tokens,
+    estimatedOutputTokens,
+  );
+  return {
+    costJpy,
+    estimatedInputTokens: counted.input_tokens,
+    estimatedOutputTokens,
+  };
 }

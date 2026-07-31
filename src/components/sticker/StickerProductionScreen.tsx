@@ -12,7 +12,10 @@ import { StickerSheetPromptPanel } from "./StickerSheetPromptPanel";
 import { StepHeader } from "./StepHeader";
 import { dataUrlToBlob } from "../../lib/imageFile";
 import { deliverAsZip, type ExportedFile } from "../../lib/exportDelivery";
-import { estimateBatchCost } from "../../lib/stickerCostEstimate";
+import {
+  formatEstimateLabel,
+  type ApiCallCostEstimate,
+} from "../../lib/apiCostEstimate";
 import { convertToLineStickerFormat } from "../../lib/lineStickerFormat";
 
 type Props = {
@@ -56,17 +59,16 @@ export function StickerProductionScreen({
   const handleGenerated = (
     plans: StickerPlan[],
     meta: { instruction: string; requestedCount: 8 | 16 | 24 | 32 | 40 },
+    estimate: ApiCallCostEstimate | null,
   ) => {
-    const estimate = estimateBatchCost(
-      meta.requestedCount,
-      referenceImageDataUrls.length,
-    );
     stickerData.addBatchWithCandidates(
       {
         instruction: meta.instruction,
         requestedCount: meta.requestedCount,
         baseStickerIds: selectedLibraryIds,
-        estimatedCostYen: estimate.label,
+        estimatedCostYen: estimate
+          ? formatEstimateLabel(estimate)
+          : "コスト不明（管理者実行のため見積もり無し）",
       },
       plans,
     );

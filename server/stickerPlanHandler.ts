@@ -9,6 +9,7 @@ import {
   type CharacterSettingsInput,
 } from "./stickerPlanPrompt.js";
 import { friendlyAnthropicErrorMessage } from "./anthropicErrors.js";
+import { estimateApiCallCost, type ApiCallCostEstimate } from "./anthropicPricing.js";
 
 export type StickerMediaType = "image/png" | "image/jpeg";
 
@@ -24,10 +25,7 @@ const DEFAULT_MODEL = "claude-opus-4-8";
 const MAX_REFERENCE_IMAGES = 10;
 const ALLOWED_COUNTS = [8, 16, 24, 32, 40];
 
-export async function runStickerPlan(
-  apiKey: string,
-  body: StickerPlanRequestBody,
-): Promise<StickerPlanBatchResult> {
+function validateRequestBody(body: StickerPlanRequestBody) {
   if (body.instruction.trim() === "") {
     throw new Error("指示文が入力されていません。");
   }
@@ -37,16 +35,68 @@ export async function runStickerPlan(
   if (body.referenceImages.length > MAX_REFERENCE_IMAGES) {
     throw new Error(`参考画像は最大${MAX_REFERENCE_IMAGES}枚までです。`);
   }
+}
 
-  const client = new Anthropic({ apiKey });
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
-
+function buildRequestParts(body: StickerPlanRequestBody) {
   const systemPrompt = buildStickerPlanSystemPrompt(body.characterSettings);
   const userMessageText = buildStickerPlanUserMessage({
     instruction: body.instruction,
     requestedCount: body.requestedCount,
     existingCandidates: body.existingCandidates,
   });
+  const messageContent = [
+    ...body.referenceImages.map((image) => ({
+      type: "image" as const,
+      source: {
+        type: "base64" as const,
+        media_type: image.mediaType,
+        data: image.dataBase64,
+      },
+    })),
+    {
+      type: "text" as const,
+      text: userMessageText,
+    },
+  ];
+  return { systemPrompt, messageContent };
+}
+
+// 一般ユーザー向けの実行前確認ダイアログ用。実績データが無いため、実際の
+// max_tokens上限（8000+件数*1200）よりかなり控えめな典型値を既定の出力見積もりにする。
+function estimatedOutputTokensFor(requestedCount: number): number {
+  return Math.min(40000, 2000 + requestedCount * 500);
+}
+
+export async function estimateStickerPlan(
+  apiKey: string,
+  body: StickerPlanRequestBody,
+): Promise<ApiCallCostEstimate> {
+  validateRequestBody(body);
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  const { systemPrompt, messageContent } = buildRequestParts(body);
+  try {
+    return await estimateApiCallCost(
+      apiKey,
+      model,
+      systemPrompt,
+      [{ role: "user", content: messageContent }],
+      estimatedOutputTokensFor(body.requestedCount),
+    );
+  } catch (err) {
+    throw new Error(friendlyAnthropicErrorMessage(err));
+  }
+}
+
+export async function runStickerPlan(
+  apiKey: string,
+  body: StickerPlanRequestBody,
+): Promise<StickerPlanBatchResult> {
+  validateRequestBody(body);
+
+  const client = new Anthropic({ apiKey });
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+
+  const { systemPrompt, messageContent } = buildRequestParts(body);
 
   let response;
   try {
@@ -67,20 +117,7 @@ export async function runStickerPlan(
       messages: [
         {
           role: "user",
-          content: [
-            ...body.referenceImages.map((image) => ({
-              type: "image" as const,
-              source: {
-                type: "base64" as const,
-                media_type: image.mediaType,
-                data: image.dataBase64,
-              },
-            })),
-            {
-              type: "text" as const,
-              text: userMessageText,
-            },
-          ],
+          content: messageContent,
         },
       ],
       output_config: {

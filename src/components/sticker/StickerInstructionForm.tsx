@@ -4,12 +4,18 @@ import {
   type CharacterSettings,
   type StickerPlan,
 } from "../../types/sticker";
-import { generateStickerPlans } from "../../lib/stickerApi";
-import { estimateBatchCost } from "../../lib/stickerCostEstimate";
+import { generateStickerPlans, estimateStickerPlanCost } from "../../lib/stickerApi";
+import {
+  formatEstimateLabel,
+  type ApiCallCostEstimate,
+} from "../../lib/apiCostEstimate";
+import { isAdminMode } from "../../lib/adminMode";
 
 const ALLOWED_COUNTS = [8, 16, 24, 32, 40] as const;
 
-type RequestState = "idle" | "confirming" | "loading" | "error";
+// 一般ユーザーは実行前に必ず概算コストの確認を挟む（Media Factory全体のAI課金
+// ルールに統一）。管理者（?admin=1）はこの確認をスキップして即実行できる。
+type RequestState = "idle" | "estimating" | "confirming" | "loading" | "error";
 
 type Props = {
   characterSettings: CharacterSettings;
@@ -18,6 +24,10 @@ type Props = {
   onGenerated: (
     plans: StickerPlan[],
     meta: { instruction: string; requestedCount: 8 | 16 | 24 | 32 | 40 },
+    // 確認ダイアログで取得済みの見積もり（実行前にcount_tokensで実測済み）を
+    // そのまま渡す。バッチの記録用ラベルとして再利用し、二重に計算しない。
+    // 管理者実行時は確認ダイアログ自体をスキップするためnull。
+    estimate: ApiCallCostEstimate | null,
   ) => void;
 };
 
@@ -34,11 +44,9 @@ export function StickerInstructionForm({
     useState<(typeof ALLOWED_COUNTS)[number]>(16);
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [error, setError] = useState("");
+  const [estimate, setEstimate] = useState<ApiCallCostEstimate | null>(null);
+  const admin = isAdminMode();
 
-  const estimate = estimateBatchCost(
-    requestedCount,
-    referenceImageDataUrls.length,
-  );
   const characterSettingsMissing = isCharacterSettingsEmpty(characterSettings);
 
   const handleGenerate = async () => {
@@ -52,12 +60,35 @@ export function StickerInstructionForm({
         referenceImageDataUrls,
         existingCandidates,
       });
-      onGenerated(plans, { instruction, requestedCount });
+      onGenerated(plans, { instruction, requestedCount }, estimate);
       setRequestState("idle");
     } catch (err) {
       setError(err instanceof Error ? err.message : "企画の生成に失敗しました。");
       setRequestState("error");
     }
+  };
+
+  const handleClickGenerate = async () => {
+    if (admin) {
+      void handleGenerate();
+      return;
+    }
+    setRequestState("estimating");
+    setError("");
+    try {
+      const result = await estimateStickerPlanCost({
+        instruction,
+        requestedCount,
+        characterSettings,
+        referenceImageDataUrls,
+        existingCandidates,
+      });
+      setEstimate(result);
+    } catch (err) {
+      setEstimate(null);
+      setError(err instanceof Error ? err.message : "見積もりに失敗しました。");
+    }
+    setRequestState("confirming");
   };
 
   return (
@@ -110,19 +141,24 @@ export function StickerInstructionForm({
         <p className="text-xs font-semibold text-yellow-700">
           ※ 上の「キャラクター設定」を先に済ませてください。
         </p>
-      ) : requestState !== "confirming" ? (
+      ) : requestState === "idle" ? (
         <button
           type="button"
-          onClick={() => setRequestState("confirming")}
+          onClick={() => void handleClickGenerate()}
           disabled={instruction.trim() === ""}
           className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           企画を生成する
         </button>
-      ) : (
+      ) : requestState === "estimating" ? (
+        <p className="text-sm text-gray-500">概算コストを計算しています...</p>
+      ) : requestState === "confirming" ? (
         <div className="flex flex-wrap items-center gap-3 rounded-md bg-yellow-50 p-3">
           <p className="text-sm text-yellow-800">
-            Claude APIを呼び出します（料金が発生します）。概算：{estimate.label}
+            {estimate
+              ? formatEstimateLabel(estimate)
+              : "推定コストを取得できませんでした（実行は可能です）"}
+            ・Claude APIを呼び出します。実行しますか？
           </p>
           <button
             type="button"
@@ -133,13 +169,16 @@ export function StickerInstructionForm({
           </button>
           <button
             type="button"
-            onClick={() => setRequestState("idle")}
+            onClick={() => {
+              setRequestState("idle");
+              setEstimate(null);
+            }}
             className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
           >
             キャンセル
           </button>
         </div>
-      )}
+      ) : null}
 
       {requestState === "loading" && (
         <p className="text-sm text-gray-500">

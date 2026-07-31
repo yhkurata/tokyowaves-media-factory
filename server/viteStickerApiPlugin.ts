@@ -2,14 +2,17 @@ import type { Plugin } from "vite";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   runStickerRecognize,
+  estimateStickerRecognize,
   type StickerRecognizeRequestBody,
 } from "./stickerRecognizeHandler.js";
 import {
   runStickerPlan,
+  estimateStickerPlan,
   type StickerPlanRequestBody,
 } from "./stickerPlanHandler.js";
 import {
   runStickerCharacterAnalysis,
+  estimateStickerCharacterAnalysis,
   type StickerCharacterAnalysisRequestBody,
 } from "./stickerCharacterAnalysisHandler.js";
 
@@ -103,6 +106,16 @@ export function stickerApiPlugin(apiKey: string | undefined): Plugin {
         }
         void handleStickerRecognize(req, res, apiKey);
       });
+      server.middlewares.use(
+        "/api/sticker-recognize-estimate",
+        (req, res, next) => {
+          if (req.method !== "POST") {
+            next();
+            return;
+          }
+          void handleStickerRecognizeEstimate(req, res, apiKey);
+        },
+      );
       server.middlewares.use("/api/sticker-plan", (req, res, next) => {
         if (req.method !== "POST") {
           next();
@@ -111,6 +124,16 @@ export function stickerApiPlugin(apiKey: string | undefined): Plugin {
         void handleStickerPlan(req, res, apiKey);
       });
       server.middlewares.use(
+        "/api/sticker-plan-estimate",
+        (req, res, next) => {
+          if (req.method !== "POST") {
+            next();
+            return;
+          }
+          void handleStickerPlanEstimate(req, res, apiKey);
+        },
+      );
+      server.middlewares.use(
         "/api/sticker-character-analysis",
         (req, res, next) => {
           if (req.method !== "POST") {
@@ -118,6 +141,16 @@ export function stickerApiPlugin(apiKey: string | undefined): Plugin {
             return;
           }
           void handleStickerCharacterAnalysis(req, res, apiKey);
+        },
+      );
+      server.middlewares.use(
+        "/api/sticker-character-analysis-estimate",
+        (req, res, next) => {
+          if (req.method !== "POST") {
+            next();
+            return;
+          }
+          void handleStickerCharacterAnalysisEstimate(req, res, apiKey);
         },
       );
     },
@@ -201,6 +234,91 @@ async function handleStickerCharacterAnalysis(
   } catch (err) {
     sendJson(res, 500, {
       error: err instanceof Error ? err.message : "不明なエラーが発生しました。",
+    });
+  }
+}
+
+// 以下3つは一般ユーザー向け実行前確認ダイアログ用の見積もりエンドポイント。
+// count_tokensのみを呼ぶため課金は発生しない（管理者モードではフロント側で
+// この呼び出し自体をスキップする）。
+
+async function handleStickerRecognizeEstimate(
+  req: IncomingMessage,
+  res: ServerResponse,
+  apiKey: string | undefined,
+) {
+  if (!apiKey) {
+    sendJson(res, 500, {
+      error:
+        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isStickerRecognizeRequestBody(body)) {
+      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+      return;
+    }
+    const result = await estimateStickerRecognize(apiKey, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handleStickerPlanEstimate(
+  req: IncomingMessage,
+  res: ServerResponse,
+  apiKey: string | undefined,
+) {
+  if (!apiKey) {
+    sendJson(res, 500, {
+      error:
+        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isStickerPlanRequestBody(body)) {
+      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+      return;
+    }
+    const result = await estimateStickerPlan(apiKey, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
+    });
+  }
+}
+
+async function handleStickerCharacterAnalysisEstimate(
+  req: IncomingMessage,
+  res: ServerResponse,
+  apiKey: string | undefined,
+) {
+  if (!apiKey) {
+    sendJson(res, 500, {
+      error:
+        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    if (!isStickerCharacterAnalysisRequestBody(body)) {
+      sendJson(res, 400, { error: "リクエストの形式が不正です。" });
+      return;
+    }
+    const result = await estimateStickerCharacterAnalysis(apiKey, body);
+    sendJson(res, 200, { result });
+  } catch (err) {
+    sendJson(res, 500, {
+      error: err instanceof Error ? err.message : "見積もり中に不明なエラーが発生しました。",
     });
   }
 }

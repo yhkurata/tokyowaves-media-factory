@@ -1,8 +1,15 @@
 import { useRef, useState } from "react";
 import type { StickerGender, StickerLibraryItem } from "../../types/sticker";
 import { fileToDataUrl } from "../../lib/imageFile";
-import { recognizeStickerPhrases } from "../../lib/stickerApi";
-import { estimateRecognizeCost } from "../../lib/stickerCostEstimate";
+import {
+  recognizeStickerPhrases,
+  estimateStickerRecognizeCost,
+} from "../../lib/stickerApi";
+import {
+  formatEstimateLabel,
+  type ApiCallCostEstimate,
+} from "../../lib/apiCostEstimate";
+import { isAdminMode } from "../../lib/adminMode";
 
 const GENDER_LABELS: Record<StickerGender, string> = {
   boy: "男の子",
@@ -40,6 +47,9 @@ export function StickerLibraryPanel({
   const [pending, setPending] = useState<PendingUpload | null>(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [error, setError] = useState("");
+  const [estimate, setEstimate] = useState<ApiCallCostEstimate | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
+  const admin = isAdminMode();
 
   const handleFilesSelected = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -47,7 +57,22 @@ export function StickerLibraryPanel({
       Array.from(files).map((file) => fileToDataUrl(file)),
     );
     setPending({ dataUrls });
+    setEstimate(null);
     if (inputRef.current) inputRef.current.value = "";
+
+    // 管理者は確認なしで即実行できるため、見積もり取得（サーバー往復）自体を
+    // 省略する。一般ユーザー向けにのみ、選んだ直後にバックグラウンドで概算コストを取得する。
+    if (!admin) {
+      setIsEstimating(true);
+      try {
+        const result = await estimateStickerRecognizeCost(dataUrls);
+        setEstimate(result);
+      } catch {
+        setEstimate(null);
+      } finally {
+        setIsEstimating(false);
+      }
+    }
   };
 
   const handleRecognizeAndAdd = async () => {
@@ -113,8 +138,13 @@ export function StickerLibraryPanel({
       {pending && (
         <div className="space-y-2 rounded-md border border-yellow-300 bg-yellow-50 p-3">
           <p className="text-sm text-yellow-800">
-            {pending.dataUrls.length}枚を追加します。セリフを自動認識しますか？（
-            {estimateRecognizeCost(pending.dataUrls.length).label}）
+            {pending.dataUrls.length}枚を追加します。セリフを自動認識しますか？
+            {!admin &&
+              (isEstimating
+                ? "（概算コストを計算しています...）"
+                : estimate
+                  ? `（${formatEstimateLabel(estimate)}）`
+                  : "（推定コスト不明）")}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <button

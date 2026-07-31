@@ -1,8 +1,15 @@
 import { useRef, useState } from "react";
 import type { CharacterSettings } from "../../types/sticker";
 import { fileToDataUrl } from "../../lib/imageFile";
-import { analyzeCharacterFromImages } from "../../lib/stickerApi";
-import { estimateCharacterAnalysisCost } from "../../lib/stickerCostEstimate";
+import {
+  analyzeCharacterFromImages,
+  estimateCharacterAnalysisCost,
+} from "../../lib/stickerApi";
+import {
+  formatEstimateLabel,
+  type ApiCallCostEstimate,
+} from "../../lib/apiCostEstimate";
+import { isAdminMode } from "../../lib/adminMode";
 
 type Props = {
   settings: CharacterSettings;
@@ -36,7 +43,9 @@ function TextField({
   );
 }
 
-type AnalysisState = "idle" | "confirming" | "loading" | "error";
+// 一般ユーザーは実行前に必ず概算コストの確認を挟む（Media Factory全体のAI課金
+// ルールに統一）。管理者（?admin=1）はこの確認をスキップして即実行できる。
+type AnalysisState = "idle" | "estimating" | "confirming" | "loading" | "error";
 
 function CharacterAnalysisPanel({
   onApply,
@@ -57,6 +66,8 @@ function CharacterAnalysisPanel({
   const [state, setState] = useState<AnalysisState>("idle");
   const [error, setError] = useState("");
   const [applied, setApplied] = useState(false);
+  const [estimate, setEstimate] = useState<ApiCallCostEstimate | null>(null);
+  const admin = isAdminMode();
 
   const handleFilesSelected = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -66,6 +77,7 @@ function CharacterAnalysisPanel({
     setImageDataUrls(dataUrls);
     setApplied(false);
     setState("idle");
+    setEstimate(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -83,7 +95,22 @@ function CharacterAnalysisPanel({
     }
   };
 
-  const estimate = estimateCharacterAnalysisCost(imageDataUrls.length);
+  const handleClickAnalyze = async () => {
+    if (admin) {
+      void handleAnalyze();
+      return;
+    }
+    setState("estimating");
+    setError("");
+    try {
+      const result = await estimateCharacterAnalysisCost(imageDataUrls);
+      setEstimate(result);
+    } catch (err) {
+      setEstimate(null);
+      setError(err instanceof Error ? err.message : "見積もりに失敗しました。");
+    }
+    setState("confirming");
+  };
 
   return (
     <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 p-4">
@@ -132,36 +159,47 @@ function CharacterAnalysisPanel({
         </div>
       )}
 
-      {imageDataUrls.length > 0 &&
-        (state !== "confirming" ? (
+      {imageDataUrls.length > 0 && state === "idle" && (
+        <button
+          type="button"
+          onClick={() => void handleClickAnalyze()}
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+        >
+          AIで解析する
+        </button>
+      )}
+
+      {state === "estimating" && (
+        <p className="text-sm text-blue-800">概算コストを計算しています...</p>
+      )}
+
+      {state === "confirming" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-yellow-50 p-3">
+          <p className="text-sm text-yellow-800">
+            {estimate
+              ? formatEstimateLabel(estimate)
+              : "推定コストを取得できませんでした（実行は可能です）"}
+            ・Claude APIを呼び出します。実行しますか？
+          </p>
           <button
             type="button"
-            onClick={() => setState("confirming")}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+            onClick={() => void handleAnalyze()}
+            className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
           >
-            AIで解析する
+            実行する
           </button>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2 rounded-md bg-yellow-50 p-3">
-            <p className="text-sm text-yellow-800">
-              Claude APIを呼び出します（料金が発生します）。概算：{estimate.label}
-            </p>
-            <button
-              type="button"
-              onClick={() => void handleAnalyze()}
-              className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
-            >
-              実行する
-            </button>
-            <button
-              type="button"
-              onClick={() => setState("idle")}
-              className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-            >
-              キャンセル
-            </button>
-          </div>
-        ))}
+          <button
+            type="button"
+            onClick={() => {
+              setState("idle");
+              setEstimate(null);
+            }}
+            className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            キャンセル
+          </button>
+        </div>
+      )}
 
       {state === "loading" && (
         <p className="text-sm text-gray-500">AIが解析中...</p>

@@ -1,4 +1,10 @@
 import { useRef, useState } from "react";
+import { fileToDataUrl } from "../../lib/imageFile";
+import { isAdminMode } from "../../lib/adminMode";
+import {
+  formatEstimateLabel,
+  type ApiCallCostEstimate,
+} from "../../lib/apiCostEstimate";
 
 export type SupportedMediaType = "image/png" | "image/jpeg" | "application/pdf";
 
@@ -12,6 +18,32 @@ function mediaTypeForFile(file: File): SupportedMediaType | null {
   return null;
 }
 
+async function fetchExtractEstimate(
+  files: File[],
+): Promise<ApiCallCostEstimate> {
+  const encoded = await Promise.all(
+    files.map(async (file) => ({
+      mediaType: mediaTypeForFile(file),
+      dataBase64: (await fileToDataUrl(file)).split(",")[1] ?? "",
+    })),
+  );
+  const res = await fetch("/api/extract-estimate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ files: encoded }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? "見積もりに失敗しました。");
+  }
+  const body = await res.json();
+  return body.result as ApiCallCostEstimate;
+}
+
+// 一般ユーザーは実行前に必ず概算コストの確認を挟む（Media Factory全体のAI課金
+// ルールに統一）。管理者（?admin=1）はこの確認をスキップして即実行できる。
+type RequestState = "idle" | "estimating" | "confirming";
+
 type Props = {
   errorMessage: string;
   onAnalyze: (files: File[]) => void;
@@ -21,10 +53,21 @@ type Props = {
 export function UploadStep({ errorMessage, onAnalyze, isSupplement }: Props) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [localError, setLocalError] = useState("");
+  const [requestState, setRequestState] = useState<RequestState>("idle");
+  const [estimate, setEstimate] = useState<ApiCallCostEstimate | null>(null);
+  const [estimateError, setEstimateError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const admin = isAdminMode();
+
+  const resetConfirmState = () => {
+    setRequestState("idle");
+    setEstimate(null);
+    setEstimateError("");
+  };
 
   const handleSelectFiles = (fileList: FileList | null) => {
     const files = fileList ? Array.from(fileList) : [];
+    resetConfirmState();
     if (files.length === 0) {
       setSelectedFiles([]);
       return;
@@ -53,6 +96,26 @@ export function UploadStep({ errorMessage, onAnalyze, isSupplement }: Props) {
     }
     setLocalError("");
     setSelectedFiles(files);
+  };
+
+  const handleClickAnalyze = async () => {
+    if (selectedFiles.length === 0) return;
+    if (admin) {
+      onAnalyze(selectedFiles);
+      return;
+    }
+    setRequestState("estimating");
+    setEstimateError("");
+    try {
+      const result = await fetchExtractEstimate(selectedFiles);
+      setEstimate(result);
+    } catch (err) {
+      setEstimate(null);
+      setEstimateError(
+        err instanceof Error ? err.message : "見積もりに失敗しました。",
+      );
+    }
+    setRequestState("confirming");
   };
 
   return (
@@ -98,14 +161,58 @@ export function UploadStep({ errorMessage, onAnalyze, isSupplement }: Props) {
             ))}
           </ul>
         )}
-        <button
-          type="button"
-          onClick={() => selectedFiles.length > 0 && onAnalyze(selectedFiles)}
-          disabled={selectedFiles.length === 0}
-          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
-        >
-          {isSupplement ? "追加の資料を解析して統合する" : "資料を解析する"}
-        </button>
+
+        {selectedFiles.length > 0 && requestState === "idle" && (
+          <button
+            type="button"
+            onClick={() => void handleClickAnalyze()}
+            className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
+          >
+            {isSupplement ? "追加の資料を解析して統合する" : "資料を解析する"}
+          </button>
+        )}
+
+        {requestState === "estimating" && (
+          <p className="text-sm text-gray-500">概算コストを計算しています...</p>
+        )}
+
+        {requestState === "confirming" && (
+          <div className="w-full space-y-2 rounded-md bg-yellow-50 p-3 text-left">
+            <p className="text-sm font-semibold text-yellow-900">
+              {estimate
+                ? formatEstimateLabel(estimate)
+                : "推定コストを取得できませんでした（実行は可能です）"}
+            </p>
+            {estimate && (
+              <p className="text-xs text-yellow-700">
+                入力{estimate.estimatedInputTokens}トークン（実測）／出力約
+                {estimate.estimatedOutputTokens}トークン（既定値・試合数により変動）
+              </p>
+            )}
+            {estimateError && (
+              <p className="text-xs text-yellow-700">{estimateError}</p>
+            )}
+            <p className="text-xs text-yellow-800">
+              Claude APIを呼び出します。実行しますか？
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onAnalyze(selectedFiles)}
+                className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
+              >
+                実行する
+              </button>
+              <button
+                type="button"
+                onClick={resetConfirmState}
+                className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {(localError || errorMessage) && (
