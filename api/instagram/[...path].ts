@@ -23,6 +23,7 @@ import {
   type UpdateApprovalPayload,
 } from "../../server/instagramAgentProposalHandler.js";
 import { assertInstagramProviderEnabled } from "../../server/instagramProviderAccess.js";
+import { instagramApiPathSegments } from "../../server/instagramApiPath.js";
 
 // Instagram AI機能の全エンドポイントを1つのVercel Functionにまとめたcatch-all
 // ルート（Vercel Hobbyプランのサーバーレス関数12個上限対策。当初は機能ごとに
@@ -120,8 +121,7 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
-  const rawPath = req.query.path;
-  const segments = Array.isArray(rawPath) ? rawPath : rawPath ? [rawPath] : [];
+  const segments = instagramApiPathSegments(req.query.path, req.url);
   const [resource, id] = segments;
 
   try {
