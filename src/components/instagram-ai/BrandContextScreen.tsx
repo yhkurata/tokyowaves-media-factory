@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { getBrandContext, updateBrandContext } from "../../lib/instagramAiApi";
+import {
+  analyzeBrandContext,
+  appendMissingFactsTemplate,
+} from "../../lib/brandContextCompleteness";
 import type { BrandContext } from "../../types/instagramAi";
 import { POST_CATEGORIES } from "../../types/instagramAi";
 import { TagListEditor } from "./TagListEditor";
@@ -43,6 +47,10 @@ export function BrandContextScreen() {
     (sum, c) => sum + ratioFor(c),
     0,
   );
+  const contextChecks = analyzeBrandContext(data.operatingGuide);
+  const missingContextCount = contextChecks.filter(
+    (item) => !item.confirmed,
+  ).length;
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -74,6 +82,68 @@ export function BrandContextScreen() {
           {new Date(data.updatedAt).toLocaleString("ja-JP")}
         </p>
       </div>
+
+      <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">
+              投稿に必要な確定情報
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-gray-600">
+              文章から自動判定した目安です。不足した情報は、AIが推測せず投稿案を止める場合があります。
+            </p>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              missingContextCount === 0
+                ? "bg-green-100 text-green-700"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            {missingContextCount === 0
+              ? "必要情報を確認済み"
+              : `未確認 ${missingContextCount}項目`}
+          </span>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {contextChecks.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-start gap-2 rounded-md bg-white p-3"
+            >
+              <span
+                aria-hidden="true"
+                className={item.confirmed ? "text-green-600" : "text-yellow-600"}
+              >
+                {item.confirmed ? "✓" : "!"}
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  {item.label}
+                </p>
+                <p className="text-xs text-gray-500">{item.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {missingContextCount > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              setData({
+                ...data,
+                operatingGuide: appendMissingFactsTemplate(data.operatingGuide),
+              })
+            }
+            className="mt-3 rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm font-semibold text-yellow-900 hover:bg-yellow-100"
+          >
+            不足項目テンプレートを運用ガイドへ追加
+          </button>
+        )}
+        <p className="mt-2 text-xs text-gray-500">
+          テンプレートを追加しても自動保存されません。内容を確認してから「保存する」を押してください。
+        </p>
+      </section>
 
       <div>
         <label
