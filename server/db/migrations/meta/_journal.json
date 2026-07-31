@@ -15,6 +15,13 @@
       "when": 1784862272430,
       "tag": "0001_harsh_lila_cheney",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785481715671,
+      "tag": "0002_regular_warlock",
+      "breakpoints": true
     }
   ]
 }

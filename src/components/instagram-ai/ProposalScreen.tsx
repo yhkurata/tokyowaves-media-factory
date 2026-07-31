@@ -5,7 +5,11 @@ import {
   estimateProposeCost,
   updateProposalApproval,
 } from "../../lib/instagramAiApi";
-import type { AgentProposal, ProposeCostEstimate } from "../../types/instagramAi";
+import type {
+  AgentProposal,
+  AiProvider,
+  ProposeCostEstimate,
+} from "../../types/instagramAi";
 import { ProposalCandidateCard } from "./ProposalCandidateCard";
 import {
   formatCostLabel,
@@ -30,6 +34,7 @@ function formatDateTime(iso: string): string {
 
 export function ProposalScreen() {
   const [instruction, setInstruction] = useState(DEFAULT_INSTRUCTION);
+  const [provider, setProvider] = useState<AiProvider>("anthropic");
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [error, setError] = useState("");
   const [proposal, setProposal] = useState<AgentProposal | null>(null);
@@ -39,7 +44,7 @@ export function ProposalScreen() {
   const admin = isAdminMode();
 
   // 起動時、DBに保存済みの最新の提案（＝直近のAI呼び出し結果）をそのまま
-  // 表示する。Claude APIは呼ばないため、リロードしても無料で前回の続きから見れる。
+  // 表示する。AI APIは呼ばないため、リロードしても無料で前回の続きから見れる。
   useEffect(() => {
     listAgentProposals()
       .then((list) => {
@@ -55,7 +60,7 @@ export function ProposalScreen() {
     setRequestState("loading");
     setError("");
     try {
-      const result = await proposeNextPost(instruction);
+      const result = await proposeNextPost(instruction, provider);
       setProposal(result);
       setRequestState("idle");
     } catch (err) {
@@ -74,7 +79,7 @@ export function ProposalScreen() {
     setRequestState("estimating");
     setError("");
     try {
-      const result = await estimateProposeCost(instruction);
+      const result = await estimateProposeCost(instruction, provider);
       setEstimate(result);
     } catch {
       // 見積もり自体が失敗しても、確認ダイアログは概算不明の表示で出す
@@ -125,6 +130,35 @@ export function ProposalScreen() {
       </div>
 
       <div className="space-y-3 rounded-md border border-gray-200 bg-white p-4">
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-semibold text-gray-700">
+            比較するAI
+          </legend>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="ai-provider"
+                value="anthropic"
+                checked={provider === "anthropic"}
+                onChange={() => setProvider("anthropic")}
+                disabled={requestState !== "idle" && requestState !== "error"}
+              />
+              Claude（従来版・既定）
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="ai-provider"
+                value="openai"
+                checked={provider === "openai"}
+                onChange={() => setProvider("openai")}
+                disabled={requestState !== "idle" && requestState !== "error"}
+              />
+              GPT（比較版）
+            </label>
+          </div>
+        </fieldset>
         <textarea
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
@@ -158,7 +192,8 @@ export function ProposalScreen() {
               <p className="text-xs text-yellow-700">{formatEstimateDetail(estimate)}</p>
             )}
             <p className="text-xs text-yellow-800">
-              Claude APIを呼び出します。実行しますか？
+              {provider === "openai" ? "OpenAI API" : "Claude API"}
+              を呼び出します。実行しますか？
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -206,10 +241,25 @@ export function ProposalScreen() {
             <span className="font-semibold text-gray-700">
               このAPI呼び出しのコスト：{formatCostLabel(proposal)}
             </span>
+            <span className="text-gray-500">
+              {proposal.aiProvider === "openai" ? "GPT" : "Claude"}
+              {proposal.aiModel ? `（${proposal.aiModel}）` : ""}
+            </span>
             <span className="text-gray-400">
               （{formatTokenDetail(proposal)}）
             </span>
           </div>
+
+          {(proposal.safetyWarnings?.length ?? 0) > 0 && (
+            <div className="rounded-md border-2 border-red-400 bg-red-50 p-3">
+              <p className="text-sm font-bold text-red-800">
+                未確認の日時・料金・申込方法などが含まれています
+              </p>
+              <p className="mt-1 text-xs text-red-700">
+                該当する案は承認できません。ブランドコンテキストへ確定情報を登録するか、提案内容を修正してください。
+              </p>
+            </div>
+          )}
 
           {proposal.openQuestions.length > 0 && (
             <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3">
@@ -249,6 +299,9 @@ export function ProposalScreen() {
                   proposal.approvedCandidateIndex === index
                 }
                 approveDisabled={approving || proposal.approvalStatus === "approved"}
+                safetyWarnings={(proposal.safetyWarnings ?? [])
+                  .filter((warning) => warning.candidateIndex === index)
+                  .map((warning) => warning.message)}
                 onApprove={() => handleApprove(index)}
               />
             ))}

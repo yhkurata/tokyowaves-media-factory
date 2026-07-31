@@ -14,6 +14,12 @@ import {
 } from "./instagramProposalPrompt.js";
 import { calculateUsageCost, estimateApiCallCost } from "./anthropicPricing.js";
 import { getAverageOutputTokens } from "./instagramAgentProposalHandler.js";
+import {
+  DEFAULT_OPENAI_INSTAGRAM_MODEL,
+  estimateOpenAIInstagramPropose,
+  runOpenAIInstagramPropose,
+} from "./openaiInstagramPropose.js";
+import { validateProposalSafety } from "./instagramProposalSafety.js";
 
 const DEFAULT_MODEL = "claude-opus-4-8";
 // 実行実績がまだ無い場合（初回呼び出し等）の控えめな既定出力トークン見積もり。
@@ -45,6 +51,7 @@ function friendlyAnthropicErrorMessage(err: unknown): string {
 
 export interface ProposeRequestBody {
   instruction: string;
+  provider?: "anthropic" | "openai";
 }
 
 function createId() {
@@ -71,7 +78,11 @@ async function buildPromptParts(instruction: string) {
     })),
   );
   const userMessage = buildProposalUserMessage(instruction, historySummary);
-  return { systemPrompt, userMessage };
+  return {
+    systemPrompt,
+    userMessage,
+    confirmedSourceText: `${brandContext.operatingGuide}\n${instruction}`,
+  };
 }
 
 export async function runPropose(apiKey: string, body: ProposeRequestBody) {
@@ -79,59 +90,97 @@ export async function runPropose(apiKey: string, body: ProposeRequestBody) {
     throw new Error("指示文が空です。");
   }
 
-  const { systemPrompt, userMessage } = await buildPromptParts(body.instruction);
-
-  const client = new Anthropic({ apiKey });
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
-
-  let response;
-  try {
-    // 3候補分のPostPlan全項目（デザイン指示・キャプション・画像生成プロンプト等）を
-    // 出力するため、抽出タスクより出力量が多くなりうる。thinking込みで余裕を持たせる。
-    const stream = client.messages.stream({
-      model,
-      max_tokens: 32000,
-      thinking: { type: "adaptive" },
-      system: [
-        {
-          type: "text" as const,
-          text: systemPrompt,
-          // ブランドコンテキストはほぼ変化しないため、プロンプトキャッシュを効かせて
-          // 繰り返し呼び出すコストを抑える。
-          cache_control: { type: "ephemeral" as const },
-        },
-      ],
-      messages: [{ role: "user", content: userMessage }],
-      output_config: {
-        format: {
-          type: "json_schema",
-          schema: PROPOSAL_JSON_SCHEMA,
-        },
-      },
-    });
-    response = await stream.finalMessage();
-  } catch (err) {
-    throw new Error(friendlyAnthropicErrorMessage(err));
-  }
-
-  if (response.stop_reason === "max_tokens") {
-    throw new Error(
-      "提案内容が多く、出力が途中で切れてしまいました。もう一度お試しください。",
-    );
-  }
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Claudeからテキスト形式の応答が得られませんでした。");
-  }
+  const { systemPrompt, userMessage, confirmedSourceText } =
+    await buildPromptParts(body.instruction);
+  const provider = body.provider ?? "anthropic";
+  const model =
+    provider === "openai"
+      ? process.env.OPENAI_INSTAGRAM_MODEL || DEFAULT_OPENAI_INSTAGRAM_MODEL
+      : process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
   let result: ProposalResult;
-  try {
-    result = JSON.parse(textBlock.text) as ProposalResult;
-  } catch {
-    throw new Error(
-      "Claudeの応答をJSON形式として読み取れませんでした。もう一度お試しください。",
-    );
+  let cost: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheCreationInputTokens: number;
+    cacheReadInputTokens: number;
+    costUsd: number | null;
+    costJpy: number | null;
+  };
+
+  if (provider === "openai") {
+    const generated = await runOpenAIInstagramPropose(apiKey, {
+      systemPrompt,
+      userMessage,
+    });
+    result = generated.result;
+    cost = {
+      inputTokens: generated.cost.inputTokens,
+      outputTokens: generated.cost.outputTokens,
+      cacheCreationInputTokens: generated.cost.cacheWriteTokens,
+      cacheReadInputTokens: generated.cost.cachedTokens,
+      costUsd: generated.cost.costUsd,
+      costJpy: generated.cost.costJpy,
+    };
+  } else {
+    const client = new Anthropic({ apiKey });
+    let response;
+    try {
+      // 3候補分のPostPlan全項目（デザイン指示・キャプション・画像生成プロンプト等）を
+      // 出力するため、抽出タスクより出力量が多くなりうる。thinking込みで余裕を持たせる。
+      const stream = client.messages.stream({
+        model,
+        max_tokens: 32000,
+        thinking: { type: "adaptive" },
+        system: [
+          {
+            type: "text" as const,
+            text: systemPrompt,
+            // ブランドコンテキストはほぼ変化しないため、プロンプトキャッシュを効かせて
+            // 繰り返し呼び出すコストを抑える。
+            cache_control: { type: "ephemeral" as const },
+          },
+        ],
+        messages: [{ role: "user", content: userMessage }],
+        output_config: {
+          format: {
+            type: "json_schema",
+            schema: PROPOSAL_JSON_SCHEMA,
+          },
+        },
+      });
+      response = await stream.finalMessage();
+    } catch (err) {
+      throw new Error(friendlyAnthropicErrorMessage(err));
+    }
+
+    if (response.stop_reason === "max_tokens") {
+      throw new Error(
+        "提案内容が多く、出力が途中で切れてしまいました。もう一度お試しください。",
+      );
+    }
+
+    const textBlock = response.content.find((block) => block.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      throw new Error("Claudeからテキスト形式の応答が得られませんでした。");
+    }
+
+    try {
+      result = JSON.parse(textBlock.text) as ProposalResult;
+    } catch {
+      throw new Error(
+        "Claudeの応答をJSON形式として読み取れませんでした。もう一度お試しください。",
+      );
+    }
+    const measured = calculateUsageCost(model, response.usage);
+    cost = {
+      inputTokens: measured.inputTokens,
+      outputTokens: measured.outputTokens,
+      cacheCreationInputTokens: measured.cacheCreationInputTokens,
+      cacheReadInputTokens: measured.cacheReadInputTokens,
+      costUsd: measured.costUsd,
+      costJpy: measured.costJpy,
+    };
   }
 
   // JSON Schema側は候補数を3件に強制できない（Claudeの構造化出力は配列の
@@ -139,13 +188,9 @@ export async function runPropose(apiKey: string, body: ProposeRequestBody) {
   // しているが、念のため実行時にも検証する。
   if (result.candidates.length !== 3) {
     throw new Error(
-      `Claudeの応答の候補数が3件ではありませんでした（${result.candidates.length}件）。もう一度お試しください。`,
+      `AIの応答の候補数が3件ではありませんでした（${result.candidates.length}件）。もう一度お試しください。`,
     );
   }
-
-  // このAPI呼び出し1回分の実測トークン数から、実際にかかったコストを計算する
-  // （見積もりではなく、レスポンスのusageに基づく実額）。
-  const cost = calculateUsageCost(model, response.usage);
 
   // agent_proposals への保存と、3候補分の post_history 登録は、どちらかだけが
   // 成功して食い違う状態を防ぐため1つのトランザクションにまとめる。
@@ -155,6 +200,8 @@ export async function runPropose(apiKey: string, body: ProposeRequestBody) {
       .values({
         id: createId(),
         userInstruction: body.instruction,
+        aiProvider: provider,
+        aiModel: model,
         candidates: result.candidates,
         recommendedCandidateIndex: result.recommendedCandidateIndex,
         recommendationReasoning: result.recommendationReasoning,
@@ -184,7 +231,13 @@ export async function runPropose(apiKey: string, body: ProposeRequestBody) {
     return saved;
   });
 
-  return saved;
+  return {
+    ...saved,
+    safetyWarnings: validateProposalSafety(
+      result.candidates,
+      confirmedSourceText,
+    ),
+  };
 }
 
 export interface ProposeCostEstimateResult {
@@ -195,10 +248,9 @@ export interface ProposeCostEstimateResult {
 }
 
 // 一般ユーザー向けの実行前確認ダイアログ（「今回の推定料金：約○円」）用。
-// 実際に送信されるシステムプロンプト・ユーザーメッセージをcount_tokensに
-// かけて入力トークン数を正確に求め、出力トークン数は過去の実行実績の平均
-// （無ければ既定値）で見積もる。count_tokensは生成を伴わないAPI呼び出し
-// のため、この見積もり自体には課金が発生しない。
+// 実際に送信されるシステムプロンプト・ユーザーメッセージを各社APIの
+// トークン計数機能にかけ、出力は同じ提供元の過去実績平均
+// （無ければ既定値）で見積もる。見積もりでは文章生成を行わない。
 export async function estimateProposeCost(
   apiKey: string,
   body: ProposeRequestBody,
@@ -208,22 +260,34 @@ export async function estimateProposeCost(
   }
 
   const { systemPrompt, userMessage } = await buildPromptParts(body.instruction);
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  const provider = body.provider ?? "anthropic";
+  const model =
+    provider === "openai"
+      ? process.env.OPENAI_INSTAGRAM_MODEL || DEFAULT_OPENAI_INSTAGRAM_MODEL
+      : process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
-  const historicalAverage = await getAverageOutputTokens();
+  const historicalAverage = await getAverageOutputTokens(provider);
   const estimatedOutputTokens = historicalAverage ?? DEFAULT_OUTPUT_TOKEN_ESTIMATE;
 
   let estimate;
-  try {
-    estimate = await estimateApiCallCost(
+  if (provider === "openai") {
+    estimate = await estimateOpenAIInstagramPropose(
       apiKey,
-      model,
-      systemPrompt,
-      [{ role: "user", content: userMessage }],
+      { systemPrompt, userMessage },
       estimatedOutputTokens,
     );
-  } catch (err) {
-    throw new Error(friendlyAnthropicErrorMessage(err));
+  } else {
+    try {
+      estimate = await estimateApiCallCost(
+        apiKey,
+        model,
+        systemPrompt,
+        [{ role: "user", content: userMessage }],
+        estimatedOutputTokens,
+      );
+    } catch (err) {
+      throw new Error(friendlyAnthropicErrorMessage(err));
+    }
   }
 
   return {

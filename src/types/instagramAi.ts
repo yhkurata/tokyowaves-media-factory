@@ -148,16 +148,28 @@ export interface ProposalCandidate {
 }
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "revised";
+export type AiProvider = "anthropic" | "openai";
+
+export interface ProposalSafetyWarning {
+  candidateIndex: number;
+  field: "contact" | "date" | "time" | "price";
+  message: string;
+  detectedValue: string;
+}
 
 export interface AgentProposal {
   id: string;
   requestedAt: string;
   userInstruction: string;
+  aiProvider: AiProvider;
+  aiModel: string | null;
   candidates: [ProposalCandidate, ProposalCandidate, ProposalCandidate];
   recommendedCandidateIndex: number;
   recommendationReasoning: string;
   operationalSuggestions: string[];
   openQuestions: string[];
+  // DB列ではなく、保存済みの確定情報と出力を照合してAPIが都度付与する。
+  safetyWarnings?: ProposalSafetyWarning[];
   approvalStatus: ApprovalStatus;
   approvedCandidateIndex: number | null;
   // このAPI呼び出し1回分の実測トークン数・概算コスト。
@@ -170,8 +182,8 @@ export interface AgentProposal {
 }
 
 // 一般ユーザー向けの実行前確認ダイアログに表示する概算コスト。
-// 入力トークンはcount_tokensによる実測値、出力トークンは過去の実行実績の
-// 平均値（実績が無ければ既定値）による見積もりのため、実際の請求額とは
+// 入力トークンは選択したAIの入力トークン計測APIによる実測値、出力トークンは
+// 同じAIの過去実績平均（無ければ既定値）による見積もりのため、実際の請求額とは
 // 多少ずれうる（あくまで「約○円」の目安）。
 export interface ProposeCostEstimate {
   costJpy: number | null;

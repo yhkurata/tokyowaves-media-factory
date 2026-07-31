@@ -1,5 +1,6 @@
 import type {
   BrandContext,
+  AiProvider,
   PostHistoryEntry,
   AgentProposal,
   ApprovalStatus,
@@ -72,12 +73,15 @@ export function deletePostHistoryEntry(id: string): Promise<void> {
   );
 }
 
-// このAPIはClaude APIを呼び出すため、実行するたびに料金が発生する。
-export function proposeNextPost(instruction: string): Promise<AgentProposal> {
+// 選択したAIの生成APIを呼び出すため、実行するたびに料金が発生する。
+export function proposeNextPost(
+  instruction: string,
+  provider: AiProvider,
+): Promise<AgentProposal> {
   return fetch("/api/instagram/propose", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "run", instruction }),
+    body: JSON.stringify({ mode: "run", instruction, provider }),
   }).then((res) => handleResponse(res));
 }
 
@@ -86,11 +90,12 @@ export function proposeNextPost(instruction: string): Promise<AgentProposal> {
 // にまとめてある（Vercel Hobbyプランの関数数上限対策）。
 export function estimateProposeCost(
   instruction: string,
+  provider: AiProvider,
 ): Promise<ProposeCostEstimate> {
   return fetch("/api/instagram/propose", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "estimate", instruction }),
+    body: JSON.stringify({ mode: "estimate", instruction, provider }),
   }).then((res) => handleResponse(res));
 }
 

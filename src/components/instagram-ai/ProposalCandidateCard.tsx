@@ -9,6 +9,7 @@ type Props = {
   isApproved: boolean;
   onApprove: () => void;
   approveDisabled: boolean;
+  safetyWarnings?: string[];
 };
 
 function Stars({ count }: { count: number }) {
@@ -26,6 +27,7 @@ export function ProposalCandidateCard({
   isApproved,
   onApprove,
   approveDisabled,
+  safetyWarnings = [],
 }: Props) {
   const [expanded, setExpanded] = useState(isRecommended);
   const { plan } = candidate;
@@ -63,11 +65,23 @@ export function ProposalCandidateCard({
           <p className="mt-0.5 text-sm text-gray-600">
             <Stars count={plan.priorityStars} /> {plan.priorityReason}
           </p>
+          {safetyWarnings.length > 0 && (
+            <div className="mt-2 rounded-md border border-red-300 bg-red-50 p-2">
+              <p className="text-xs font-bold text-red-700">
+                未確認情報があるため承認できません
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-red-700">
+                {safetyWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <button
           type="button"
           onClick={onApprove}
-          disabled={approveDisabled}
+          disabled={approveDisabled || safetyWarnings.length > 0}
           className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           この案を承認

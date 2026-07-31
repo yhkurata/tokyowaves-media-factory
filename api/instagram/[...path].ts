@@ -22,6 +22,7 @@ import {
   updateProposalApproval,
   type UpdateApprovalPayload,
 } from "../../server/instagramAgentProposalHandler.js";
+import { assertInstagramProviderEnabled } from "../../server/instagramProviderAccess.js";
 
 // Instagram AI機能の全エンドポイントを1つのVercel Functionにまとめたcatch-all
 // ルート（Vercel Hobbyプランのサーバーレス関数12個上限対策。当初は機能ごとに
@@ -93,6 +94,9 @@ function isProposeRequestBody(value: unknown): value is ProposeRequest {
   return (
     typeof v.instruction === "string" &&
     v.instruction.trim() !== "" &&
+    (v.provider === undefined ||
+      v.provider === "anthropic" ||
+      v.provider === "openai") &&
     (v.mode === undefined || v.mode === "run" || v.mode === "estimate")
   );
 }
@@ -160,18 +164,34 @@ async function handlePropose(req: VercelRequest, res: VercelResponse) {
     sendError(res, 405, "POSTメソッドのみ対応しています。");
     return;
   }
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const body: unknown = req.body;
+  if (!isProposeRequestBody(body)) {
+    sendError(res, 400, "リクエストの形式が不正です（instructionが必要です）。");
+    return;
+  }
+  const provider = body.provider ?? "anthropic";
+  try {
+    assertInstagramProviderEnabled(provider);
+  } catch (error) {
+    sendError(
+      res,
+      403,
+      error instanceof Error ? error.message : "選択したAIは利用できません。",
+    );
+    return;
+  }
+  const apiKey =
+    provider === "openai"
+      ? process.env.OPENAI_API_KEY
+      : process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     sendError(
       res,
       500,
-      "サーバーに ANTHROPIC_API_KEY が設定されていません。Vercelの環境変数を確認してください。",
+      provider === "openai"
+        ? "サーバーに OPENAI_API_KEY が設定されていません。Vercelの環境変数を確認してください。"
+        : "サーバーに ANTHROPIC_API_KEY が設定されていません。Vercelの環境変数を確認してください。",
     );
-    return;
-  }
-  const body: unknown = req.body;
-  if (!isProposeRequestBody(body)) {
-    sendError(res, 400, "リクエストの形式が不正です（instructionが必要です）。");
     return;
   }
   if (body.mode === "estimate") {

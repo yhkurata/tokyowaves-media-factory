@@ -11,6 +11,7 @@
 - html-to-image（ブラウザ上でDOMをPNG化）
 - jszip（PNGをまとめてZIP化）
 - @anthropic-ai/sdk（Claude APIによる資料解析。Vite開発サーバー内の簡易バックエンドで使用）
+- openai（Instagram投稿提案をGPTと比較するためのResponses API。Claude版も継続利用可能）
 
 ## セットアップ（Mac）
 
@@ -38,6 +39,13 @@ cp .env.example .env
 ```
 
 `.env` を開き、`ANTHROPIC_API_KEY=` の後ろに [console.anthropic.com](https://console.anthropic.com/) で発行したAPIキーを貼り付けてください。`.env` は `.gitignore` 済みのためコミットされません。APIキーはサーバー側（Viteの開発サーバー内の中継処理）でのみ使用され、ブラウザ側のコードには一切含まれません。
+
+Instagram AIの「次の投稿を提案」でGPT比較版を選ぶ場合だけ、
+`OPENAI_API_KEY`も設定してください。省略時のGPTモデルは
+`gpt-5.6-terra`で、`OPENAI_INSTAGRAM_MODEL`により変更できます。
+さらに安全確認後、`OPENAI_INSTAGRAM_ENABLED=true`を設定した環境でのみ
+GPTを呼び出せます。未設定時はサーバー側でGPTを拒否し、Claudeだけを
+従来どおり利用できます。
 
 この設定をしなくても、各フォームへの手入力・PNG書き出しは通常通り使えます。
 

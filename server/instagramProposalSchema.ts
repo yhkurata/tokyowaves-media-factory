@@ -178,9 +178,19 @@ const POST_PLAN_JSON_SCHEMA = {
       additionalProperties: false,
     },
     caption: { type: "string" },
-    cta: { type: "string" },
+    cta: {
+      type: "string",
+      description:
+        "読者に促す次の行動。正式な申込方法が入力情報に無い場合は、" +
+        "推測せず「未確定（正式な申込方法を確認）」とする。",
+    },
     hashtags: { type: "array", items: { type: "string" } },
-    postTime: { type: "string" },
+    postTime: {
+      type: "string",
+      description:
+        "推奨投稿時間。確定済みの時間情報が入力に無い場合は、" +
+        "「未確定（運用担当者が設定）」とする。",
+    },
     postTimeReason: { type: "string" },
     metricsToWatch: { type: "array", items: { type: "string" } },
   },

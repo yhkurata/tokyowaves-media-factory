@@ -86,6 +86,10 @@ function ProposalRow({
             >
               {APPROVAL_STATUS_LABELS[proposal.approvalStatus]}
             </span>
+            <span className="rounded bg-blue-50 px-1.5 py-0.5 font-semibold text-blue-700">
+              {proposal.aiProvider === "openai" ? "GPT" : "Claude"}
+              {proposal.aiModel ? ` / ${proposal.aiModel}` : ""}
+            </span>
             <span className="text-gray-400">{formatCostLabel(proposal)}</span>
           </div>
           <p className="mt-1 truncate text-sm font-medium text-gray-900">

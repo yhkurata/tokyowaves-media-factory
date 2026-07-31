@@ -115,6 +115,10 @@ export const agentProposals = pgTable("agent_proposals", {
     .notNull()
     .defaultNow(),
   userInstruction: text("user_instruction").notNull(),
+  // Claude/GPTの比較結果を後から判別できるよう、実際の生成元を保存する。
+  // 既存行は移行時にanthropicとして扱う。
+  aiProvider: text("ai_provider").notNull().default("anthropic"),
+  aiModel: text("ai_model"),
   // ProposalCandidate[] （各要素に format/formatReasoning/category/plan/noveltyNote を含む）
   candidates: jsonb("candidates").$type<unknown[]>().notNull(),
   recommendedCandidateIndex: integer("recommended_candidate_index").notNull(),
@@ -131,7 +135,7 @@ export const agentProposals = pgTable("agent_proposals", {
     .notNull()
     .default("pending"),
   approvedCandidateIndex: integer("approved_candidate_index"),
-  // この提案を生成したClaude API呼び出し1回分の実測トークン数と概算コスト。
+  // この提案を生成したAI API呼び出し1回分の実測トークン数と概算コスト。
   // 「毎回いくらかかったか」を提案一覧・提案画面に表示するために保持する。
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),

@@ -23,6 +23,7 @@ import {
   updateProposalApproval,
   type UpdateApprovalPayload,
 } from "./instagramAgentProposalHandler.js";
+import { assertInstagramProviderEnabled } from "./instagramProviderAccess.js";
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5MB（このAPIはJSONのみで十分な余裕）
 
@@ -116,6 +117,9 @@ function isProposeRequestBody(value: unknown): value is ProposeRequest {
   return (
     typeof v.instruction === "string" &&
     v.instruction.trim() !== "" &&
+    (v.provider === undefined ||
+      v.provider === "anthropic" ||
+      v.provider === "openai") &&
     (v.mode === undefined || v.mode === "run" || v.mode === "estimate")
   );
 }
@@ -268,13 +272,6 @@ async function handlePropose(
     sendJson(res, 405, { error: "POSTメソッドのみ対応しています。" });
     return;
   }
-  if (!apiKey) {
-    sendJson(res, 500, {
-      error:
-        "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
-    });
-    return;
-  }
   try {
     const body = await readJsonBody(req);
     if (!isProposeRequestBody(body)) {
@@ -283,12 +280,33 @@ async function handlePropose(
       });
       return;
     }
+    const provider = body.provider ?? "anthropic";
+    try {
+      assertInstagramProviderEnabled(provider);
+    } catch (error) {
+      sendJson(res, 403, {
+        error:
+          error instanceof Error ? error.message : "選択したAIは利用できません。",
+      });
+      return;
+    }
+    const selectedApiKey =
+      provider === "openai" ? process.env.OPENAI_API_KEY : apiKey;
+    if (!selectedApiKey) {
+      sendJson(res, 500, {
+        error:
+          provider === "openai"
+            ? "サーバーに OPENAI_API_KEY が設定されていません。.env ファイルを確認してください。"
+            : "サーバーに ANTHROPIC_API_KEY が設定されていません。.env ファイルを確認してください。",
+      });
+      return;
+    }
     if (body.mode === "estimate") {
-      const result = await estimateProposeCost(apiKey, body);
+      const result = await estimateProposeCost(selectedApiKey, body);
       sendJson(res, 200, { result });
       return;
     }
-    const result = await runPropose(apiKey, body);
+    const result = await runPropose(selectedApiKey, body);
     sendJson(res, 200, { result });
   } catch (err) {
     sendJson(res, 500, {
