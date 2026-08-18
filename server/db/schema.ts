@@ -148,3 +148,20 @@ export const agentProposals = pgTable("agent_proposals", {
   costUsd: doublePrecision("cost_usd"),
   costJpy: doublePrecision("cost_jpy"),
 });
+
+// ============================================================
+// expedition_guide_templates: 遠征要項AIの「場所・時間ごとのテンプレート」。
+// 従来はブラウザのlocalStorageのみに保存していたため、監督が自分の端末で
+// 保存しても他のメンバーの画面には反映されないという問題があった。
+// チーム全員で積み上げていく共有データにするため、他機能と同じNeon DBに
+// 保存する（ログイン機構が無いため、誰でも読み書きできる共有テーブル）。
+// name はテンプレート名で一意（同名保存＝上書き、という従来の挙動を踏襲）。
+// ============================================================
+export const expeditionGuideTemplates = pgTable("expedition_guide_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  input: jsonb("input").$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

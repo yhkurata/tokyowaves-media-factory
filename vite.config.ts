@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { extractApiPlugin } from './server/viteExtractPlugin'
 import { stickerApiPlugin } from './server/viteStickerApiPlugin'
 import { instagramAiApiPlugin } from './server/viteInstagramAiApiPlugin'
+import { expeditionGuideTemplateApiPlugin } from './server/viteExpeditionGuideTemplateApiPlugin'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
       extractApiPlugin(env.ANTHROPIC_API_KEY),
       stickerApiPlugin(env.ANTHROPIC_API_KEY),
       instagramAiApiPlugin(env.ANTHROPIC_API_KEY),
+      expeditionGuideTemplateApiPlugin(),
     ],
   }
 })

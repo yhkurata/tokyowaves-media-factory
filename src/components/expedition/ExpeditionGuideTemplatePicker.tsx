@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ExpeditionGuideInput } from "../../types/expeditionGuide";
+import type { ExpeditionGuideTemplate } from "../../types/expeditionGuideTemplate";
 import {
   deleteExpeditionGuideTemplate,
   loadExpeditionGuideTemplates,
@@ -13,19 +14,41 @@ type Props = {
 };
 
 // 「この場所・この時間ならこの内容」をまるごと選んで復元するためのピッカー。
-// 初回は大宮公園遠征・埼玉栄遠征のシードテンプレートから選べ、
-// 使っていくうちに自分たちのテンプレートを増やしていける（編集・削除も可能）。
+// テンプレートはチーム全員（監督・部長等）で共有するデータとしてサーバー
+// （Neon DB）に保存されており、誰かが保存・更新・削除すると全員の画面に
+// 反映される。初回は大宮公園遠征・埼玉栄遠征等のシードテンプレートから選べ、
+// 使っていくうちにチームのテンプレートを増やしていける（編集・削除も可能）。
 export function ExpeditionGuideTemplatePicker({
   currentInput,
   onLoadTemplate,
 }: Props) {
-  const [templates, setTemplates] = useState(() =>
-    loadExpeditionGuideTemplates(),
-  );
+  const [templates, setTemplates] = useState<ExpeditionGuideTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [newName, setNewName] = useState("");
   const [message, setMessage] = useState("");
+
+  const refresh = () => {
+    setIsLoading(true);
+    setLoadError("");
+    return loadExpeditionGuideTemplates()
+      .then((result) => setTemplates(result))
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error
+            ? err.message
+            : "テンプレート一覧の取得に失敗しました。",
+        );
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
 
   const selectedTemplate = templates.find((t) => t.id === selectedId) ?? null;
 
@@ -45,15 +68,26 @@ export function ExpeditionGuideTemplatePicker({
     });
   };
 
-  const handleSaveNew = () => {
+  const handleSaveNew = async () => {
     if (newName.trim() === "") return;
-    const next = saveExpeditionGuideTemplate(newName, currentInput);
-    setTemplates(next);
-    setNewName("");
-    setIsSaving(false);
+    setIsBusy(true);
+    setMessage("");
+    try {
+      await saveExpeditionGuideTemplate(newName, currentInput);
+      await refresh();
+      setMessage(`「${newName.trim()}」を保存しました。`);
+      setNewName("");
+      setIsSaving(false);
+    } catch (err) {
+      setMessage(
+        err instanceof Error ? err.message : "テンプレートの保存に失敗しました。",
+      );
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleUpdateSelected = () => {
+  const handleUpdateSelected = async () => {
     if (!selectedTemplate) return;
     if (
       !window.confirm(
@@ -62,20 +96,40 @@ export function ExpeditionGuideTemplatePicker({
     ) {
       return;
     }
-    const next = updateExpeditionGuideTemplate(selectedTemplate.id, currentInput);
-    setTemplates(next);
-    setMessage(`「${selectedTemplate.name}」を今の内容で更新しました。`);
+    setIsBusy(true);
+    setMessage("");
+    try {
+      await updateExpeditionGuideTemplate(selectedTemplate.id, currentInput);
+      await refresh();
+      setMessage(`「${selectedTemplate.name}」を今の内容で更新しました。`);
+    } catch (err) {
+      setMessage(
+        err instanceof Error ? err.message : "テンプレートの更新に失敗しました。",
+      );
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (!selectedTemplate) return;
     if (!window.confirm(`テンプレート「${selectedTemplate.name}」を削除しますか？`)) {
       return;
     }
-    const next = deleteExpeditionGuideTemplate(selectedTemplate.id);
-    setTemplates(next);
-    setSelectedId("");
-    setMessage(`「${selectedTemplate.name}」を削除しました。`);
+    setIsBusy(true);
+    setMessage("");
+    try {
+      await deleteExpeditionGuideTemplate(selectedTemplate.id);
+      await refresh();
+      setMessage(`「${selectedTemplate.name}」を削除しました。`);
+      setSelectedId("");
+    } catch (err) {
+      setMessage(
+        err instanceof Error ? err.message : "テンプレートの削除に失敗しました。",
+      );
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (
@@ -87,10 +141,11 @@ export function ExpeditionGuideTemplatePicker({
         <select
           value={selectedId}
           onChange={(e) => handleSelect(e.target.value)}
-          className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+          disabled={isLoading || isBusy}
+          className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
         >
           <option value="" disabled>
-            選択してください
+            {isLoading ? "読み込み中…" : "選択してください"}
           </option>
           {templates.map((t) => (
             <option key={t.id} value={t.id}>
@@ -103,15 +158,17 @@ export function ExpeditionGuideTemplatePicker({
           <>
             <button
               type="button"
-              onClick={handleUpdateSelected}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+              onClick={() => void handleUpdateSelected()}
+              disabled={isBusy}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
             >
               今の内容で更新
             </button>
             <button
               type="button"
-              onClick={handleDeleteSelected}
-              className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+              onClick={() => void handleDeleteSelected()}
+              disabled={isBusy}
+              className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
               削除
             </button>
@@ -129,8 +186,8 @@ export function ExpeditionGuideTemplatePicker({
             />
             <button
               type="button"
-              onClick={handleSaveNew}
-              disabled={newName.trim() === ""}
+              onClick={() => void handleSaveNew()}
+              disabled={newName.trim() === "" || isBusy}
               className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               保存
@@ -150,12 +207,17 @@ export function ExpeditionGuideTemplatePicker({
           <button
             type="button"
             onClick={() => setIsSaving(true)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+            disabled={isBusy}
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
           >
             現在の内容を新しいテンプレートとして保存
           </button>
         )}
       </div>
+      <p className="text-[11px] text-gray-400">
+        テンプレートはチーム共有です。保存・更新・削除は他のメンバーの画面にも反映されます。
+      </p>
+      {loadError && <p className="text-xs text-red-600">{loadError}</p>}
       {message && <p className="text-xs text-gray-500">{message}</p>}
     </div>
   );
