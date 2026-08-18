@@ -88,9 +88,11 @@ function isUpdatePayload(value: unknown): value is UpdatePayload {
   return isExpeditionGuideInput(v.input);
 }
 
-// ローカル開発サーバー用のミドルウェア。api/expedition-guide-templates/[...path].ts
-// （Vercel Function）と同じハンドラー関数を呼ぶだけで、ロジックの二重管理を避ける。
-// パス構成も本番と完全に一致させてある：
+// ローカル開発サーバー用のミドルウェア。api/expedition-guide-templates.ts +
+// api/expedition-guide-templates/[id].ts（Vercel Functions）と同じハンドラー
+// 関数を呼ぶだけで、ロジックの二重管理を避ける。
+// （本番側はセグメント無しのルートがcatch-allにマッチしないため2ファイルに
+// 分かれているが、こちらは1つのミドルウェアでパス構成だけ本番と一致させてある）
 //   GET   /api/expedition-guide-templates       一覧取得（無ければシード投入）
 //   POST  /api/expedition-guide-templates       新規保存（同名があれば上書き）
 //   PATCH /api/expedition-guide-templates/{id}  既存テンプレートを今の内容で更新
