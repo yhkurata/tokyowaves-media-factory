@@ -13,6 +13,34 @@ type Props = {
   onLoadTemplate: (input: ExpeditionGuideInput) => void;
 };
 
+// 旧バージョン（DB移行前）がテンプレートを保存していたlocalStorageキー。
+// 各端末に取り込み未了のデータが残っている可能性があるため、起動時に
+// チェックして「共有テンプレートに取り込む」を案内する。
+const LEGACY_STORAGE_KEY = "tokyowaves-media-factory:expedition-guide-templates";
+
+interface LegacyTemplate {
+  name: string;
+  input: ExpeditionGuideInput;
+}
+
+function readLegacyTemplates(): LegacyTemplate[] {
+  try {
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (t): t is LegacyTemplate =>
+        typeof t === "object" &&
+        t !== null &&
+        typeof (t as Record<string, unknown>).name === "string" &&
+        typeof (t as Record<string, unknown>).input === "object",
+    );
+  } catch {
+    return [];
+  }
+}
+
 // 「この場所・この時間ならこの内容」をまるごと選んで復元するためのピッカー。
 // テンプレートはチーム全員（監督・部長等）で共有するデータとしてサーバー
 // （Neon DB）に保存されており、誰かが保存・更新・削除すると全員の画面に
@@ -30,12 +58,27 @@ export function ExpeditionGuideTemplatePicker({
   const [isBusy, setIsBusy] = useState(false);
   const [newName, setNewName] = useState("");
   const [message, setMessage] = useState("");
+  const [legacyCandidates, setLegacyCandidates] = useState<LegacyTemplate[]>(
+    [],
+  );
+  const [isImporting, setIsImporting] = useState(false);
 
   const refresh = () => {
     setIsLoading(true);
     setLoadError("");
     return loadExpeditionGuideTemplates()
-      .then((result) => setTemplates(result))
+      .then((result) => {
+        setTemplates(result);
+        // この端末にDB未取り込みの旧テンプレート（localStorage時代の保存分）が
+        // 無いか確認する。名前が共有テンプレートに既にあるものは、既に取り込み
+        // 済みか元々重複していたものとみなしてスキップする。
+        const existingNames = new Set(result.map((t) => t.name));
+        const candidates = readLegacyTemplates().filter(
+          (t) => !existingNames.has(t.name),
+        );
+        setLegacyCandidates(candidates);
+        return result;
+      })
       .catch((err: unknown) => {
         setLoadError(
           err instanceof Error
@@ -49,6 +92,27 @@ export function ExpeditionGuideTemplatePicker({
   useEffect(() => {
     void refresh();
   }, []);
+
+  const handleImportLegacy = async () => {
+    setIsImporting(true);
+    setMessage("");
+    try {
+      for (const t of legacyCandidates) {
+        await saveExpeditionGuideTemplate(t.name, t.input);
+      }
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      await refresh();
+      setMessage(
+        `この端末に保存されていたテンプレート${legacyCandidates.length}件を共有テンプレートに取り込みました。`,
+      );
+    } catch (err) {
+      setMessage(
+        err instanceof Error ? err.message : "テンプレートの取り込みに失敗しました。",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const selectedTemplate = templates.find((t) => t.id === selectedId) ?? null;
 
@@ -217,6 +281,22 @@ export function ExpeditionGuideTemplatePicker({
       <p className="text-[11px] text-gray-400">
         テンプレートはチーム共有です。保存・更新・削除は他のメンバーの画面にも反映されます。
       </p>
+      {legacyCandidates.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+          <span>
+            この端末にだけ保存されていた旧テンプレートが{legacyCandidates.length}
+            件見つかりました（{legacyCandidates.map((t) => t.name).join("・")}）。
+          </span>
+          <button
+            type="button"
+            onClick={() => void handleImportLegacy()}
+            disabled={isImporting}
+            className="rounded-md bg-amber-600 px-2.5 py-1 font-semibold text-white hover:bg-amber-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            {isImporting ? "取り込み中…" : "共有テンプレートに取り込む"}
+          </button>
+        </div>
+      )}
       {loadError && <p className="text-xs text-red-600">{loadError}</p>}
       {message && <p className="text-xs text-gray-500">{message}</p>}
     </div>
