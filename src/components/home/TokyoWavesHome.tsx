@@ -41,8 +41,8 @@ const SERVICES: {
     number: "03",
     name: "Scout",
     eyebrow: "ささえる",
-    description: "対戦相手の特徴やキープレイヤー、戦術を記録し、次の試合に活かす。",
-    action: "相手チームを記録する",
+    description: "試合を観ながらチームと選手の気づきを残し、コーチ全員で共有する。",
+    action: "分析をはじめる",
     accent: "#0e9f76",
     icon: "scout",
   },
@@ -74,6 +74,14 @@ function ServiceIcon({ type }: { type: "media" | "sns" | "scout" }) {
 }
 
 export function TokyoWavesHome({ onOpen }: Props) {
+  const handleOpen = (destination: Destination) => {
+    if (destination === "scout") {
+      window.location.assign("https://waves-scout-v0.vercel.app/");
+      return;
+    }
+    onOpen(destination);
+  };
+
   return (
     <div className="tw-home">
       <div className="tw-home__glow tw-home__glow--one" />
@@ -106,7 +114,7 @@ export function TokyoWavesHome({ onOpen }: Props) {
               type="button"
               className="tw-service-card"
               style={{ "--service-accent": service.accent } as React.CSSProperties}
-              onClick={() => onOpen(service.id)}
+              onClick={() => handleOpen(service.id)}
             >
               <span className="tw-service-card__number">{service.number}</span>
               <span className="tw-service-card__icon">

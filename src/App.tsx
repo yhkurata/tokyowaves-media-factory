@@ -20,7 +20,6 @@ import { ExpeditionGuideScreen } from "./components/expedition/ExpeditionGuideSc
 import { InstagramAiScreen } from "./components/instagram-ai/InstagramAiScreen";
 import { TokyoWavesHome } from "./components/home/TokyoWavesHome";
 import { TokyoWavesLogo } from "./components/brand/TokyoWavesLogo";
-import { ScoutScreen } from "./components/scout/ScoutScreen";
 import {
   buildBracketData,
   buildLeagueGroups,
@@ -117,6 +116,10 @@ function App() {
   // 現在のタブをURLの?tool=に反映し、そのURLをそのまま共有すれば
   // 同じタブが開いた状態を再現できるようにする。
   useEffect(() => {
+    if (mode === "scout") {
+      window.location.replace("https://waves-scout-v0.vercel.app/");
+      return;
+    }
     const url = new URL(window.location.href);
     if (mode === "home") {
       url.searchParams.delete(TOOL_QUERY_PARAM);
@@ -484,7 +487,6 @@ function App() {
 
         {mode === "instagram-ai" && <InstagramAiScreen />}
 
-        {mode === "scout" && <ScoutScreen />}
       </main>}
     </div>
   );
