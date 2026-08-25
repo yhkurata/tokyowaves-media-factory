@@ -2,10 +2,6 @@ import { TokyoWavesLogo } from "../brand/TokyoWavesLogo";
 
 type Destination = "tournament" | "instagram-ai" | "scout";
 
-type Props = {
-  onOpen: (destination: Destination) => void;
-};
-
 const SERVICES: {
   id: Destination;
   number: string;
@@ -73,13 +69,15 @@ function ServiceIcon({ type }: { type: "media" | "sns" | "scout" }) {
   );
 }
 
-export function TokyoWavesHome({ onOpen }: Props) {
+export function TokyoWavesHome() {
   const handleOpen = (destination: Destination) => {
     if (destination === "scout") {
       window.location.assign("https://waves-scout-v0.vercel.app/");
       return;
     }
-    onOpen(destination);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tool", destination);
+    window.location.assign(url);
   };
 
   return (

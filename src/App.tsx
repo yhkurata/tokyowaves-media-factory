@@ -319,7 +319,7 @@ function App() {
           onDiscard={handleDiscardAutoSave}
         />
       )}
-      {mode === "home" && <TokyoWavesHome onOpen={setMode} />}
+      {mode === "home" && <TokyoWavesHome />}
 
       {mode !== "home" && <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3">
         <button
