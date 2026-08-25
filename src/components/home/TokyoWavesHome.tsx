@@ -49,7 +49,7 @@ const SERVICES: {
   {
     id: "expedition-guide",
     number: "04",
-    name: "遠征要項AI",
+    name: "遠征Guide",
     eyebrow: "まとめる",
     description: "遠征情報から、LINE・メール・印刷用の案内をまとめてつくる。",
     action: "遠征要項をつくる",

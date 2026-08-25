@@ -55,7 +55,7 @@ const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "tournament", label: "大会画像作成" },
   { id: "sticker", label: "スタンプ制作" },
   { id: "character-settings", label: "キャラクター設定" },
-  { id: "expedition-guide", label: "遠征要項AI" },
+  { id: "expedition-guide", label: "遠征Guide" },
   { id: "instagram-ai", label: "Instagram AI" },
   { id: "scout", label: "対戦相手メモ" },
 ];
@@ -337,7 +337,7 @@ function App() {
                 : mode === "scout"
                   ? "Scout"
                   : mode === "expedition-guide"
-                    ? "遠征要項AI"
+                    ? "遠征Guide"
                     : "Media Factory"}
             </span>
           </span>
