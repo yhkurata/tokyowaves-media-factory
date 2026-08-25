@@ -1,6 +1,10 @@
 import { TokyoWavesLogo } from "../brand/TokyoWavesLogo";
 
-type Destination = "tournament" | "instagram-ai" | "scout";
+type Destination =
+  | "tournament"
+  | "instagram-ai"
+  | "scout"
+  | "expedition-guide";
 
 const SERVICES: {
   id: Destination;
@@ -10,7 +14,7 @@ const SERVICES: {
   description: string;
   action: string;
   accent: string;
-  icon: "media" | "sns" | "scout";
+  icon: "media" | "sns" | "scout" | "expedition";
 }[] = [
   {
     id: "tournament",
@@ -42,9 +46,19 @@ const SERVICES: {
     accent: "#0e9f76",
     icon: "scout",
   },
+  {
+    id: "expedition-guide",
+    number: "04",
+    name: "遠征要項AI",
+    eyebrow: "まとめる",
+    description: "遠征情報から、LINE・メール・印刷用の案内をまとめてつくる。",
+    action: "遠征要項をつくる",
+    accent: "#ef8a22",
+    icon: "expedition",
+  },
 ];
 
-function ServiceIcon({ type }: { type: "media" | "sns" | "scout" }) {
+function ServiceIcon({ type }: { type: "media" | "sns" | "scout" | "expedition" }) {
   if (type === "media") {
     return (
       <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -61,10 +75,15 @@ function ServiceIcon({ type }: { type: "media" | "sns" | "scout" }) {
       </svg>
     );
   }
-  return (
+  if (type === "scout") return (
     <svg viewBox="0 0 48 48" aria-hidden="true">
       <circle cx="21" cy="21" r="11" />
       <path d="m29 29 10 10M21 15v12M15 21h12" />
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M12 16h24v24H12zM18 16v-4h12v4M12 26h24M22 26v4h4v-4" />
     </svg>
   );
 }

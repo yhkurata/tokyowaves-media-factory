@@ -99,7 +99,7 @@ body {
 .tw-home__hero h1 { margin: 0; font-size: clamp(44px, 6vw, 76px); line-height: 1.14; letter-spacing: -.055em; font-weight: 900; }
 .tw-home__hero h1 span { color: #3476ef; }
 .tw-home__lead { margin: 28px 0 0; color: #657493; font-size: 15px; line-height: 1.9; }
-.tw-home__services { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: clamp(54px, 8vh, 88px); }
+.tw-home__services { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: clamp(54px, 8vh, 88px); }
 
 .tw-service-card {
   position: relative;
@@ -133,6 +133,10 @@ body {
 .tw-service-card__action span { font-size: 20px; transition: transform .2s ease; }
 .tw-service-card:hover .tw-service-card__action span { transform: translateX(4px); }
 .tw-home__footer { padding: 22px 0 30px; border-top: 1px solid rgba(44, 76, 129, .10); }
+
+@media (min-width: 761px) and (max-width: 1050px) {
+  .tw-home__services { grid-template-columns: repeat(2, 1fr); }
+}
 
 @media (max-width: 760px) {
   .tw-home__header, .tw-home__footer, .tw-home__main { width: min(100% - 32px, 1180px); }
