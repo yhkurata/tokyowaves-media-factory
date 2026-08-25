@@ -1,6 +1,6 @@
 import { TokyoWavesLogo } from "../brand/TokyoWavesLogo";
 
-type Destination = "tournament" | "instagram-ai" | "expedition-guide";
+type Destination = "tournament" | "instagram-ai" | "scout";
 
 type Props = {
   onOpen: (destination: Destination) => void;
@@ -37,12 +37,12 @@ const SERVICES: {
     icon: "sns",
   },
   {
-    id: "expedition-guide",
+    id: "scout",
     number: "03",
     name: "Scout",
     eyebrow: "ささえる",
-    description: "遠征の情報をひとつにまとめ、LINE・メール・印刷用の案内をつくる。",
-    action: "遠征を準備する",
+    description: "対戦相手の特徴やキープレイヤー、戦術を記録し、次の試合に活かす。",
+    action: "相手チームを記録する",
     accent: "#0e9f76",
     icon: "scout",
   },

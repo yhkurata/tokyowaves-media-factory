@@ -20,6 +20,7 @@ import { ExpeditionGuideScreen } from "./components/expedition/ExpeditionGuideSc
 import { InstagramAiScreen } from "./components/instagram-ai/InstagramAiScreen";
 import { TokyoWavesHome } from "./components/home/TokyoWavesHome";
 import { TokyoWavesLogo } from "./components/brand/TokyoWavesLogo";
+import { ScoutScreen } from "./components/scout/ScoutScreen";
 import {
   buildBracketData,
   buildLeagueGroups,
@@ -47,7 +48,8 @@ type AppMode =
   | "sticker"
   | "character-settings"
   | "expedition-guide"
-  | "instagram-ai";
+  | "instagram-ai"
+  | "scout";
 
 const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "home", label: "ホーム" },
@@ -56,6 +58,7 @@ const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "character-settings", label: "キャラクター設定" },
   { id: "expedition-guide", label: "遠征要項AI" },
   { id: "instagram-ai", label: "Instagram AI" },
+  { id: "scout", label: "対戦相手メモ" },
 ];
 
 // ?tool=expedition-guide のようなURLを直接開くと、そのタブが最初から
@@ -326,7 +329,13 @@ function App() {
           <span>
             <span className="block text-[10px] font-bold tracking-[0.18em] text-gray-400">TOKYO WAVES</span>
             <span className="block text-base font-black">
-              {mode === "instagram-ai" ? "SNS Agent" : mode === "expedition-guide" ? "Scout" : "Media Factory"}
+              {mode === "instagram-ai"
+                ? "SNS Agent"
+                : mode === "scout"
+                  ? "Scout"
+                  : mode === "expedition-guide"
+                    ? "遠征要項AI"
+                    : "Media Factory"}
             </span>
           </span>
         </button>
@@ -369,6 +378,7 @@ function App() {
           {MODE_TABS.filter((tab) => {
             if (mode === "instagram-ai") return tab.id === "instagram-ai";
             if (mode === "expedition-guide") return tab.id === "expedition-guide";
+            if (mode === "scout") return tab.id === "scout";
             return ["tournament", "sticker", "character-settings"].includes(tab.id);
           }).map((tab) => (
             <button
@@ -473,6 +483,8 @@ function App() {
         )}
 
         {mode === "instagram-ai" && <InstagramAiScreen />}
+
+        {mode === "scout" && <ScoutScreen />}
       </main>}
     </div>
   );
