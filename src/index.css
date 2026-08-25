@@ -44,7 +44,8 @@ body {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: #f6f9ff;
+  background:
+    linear-gradient(160deg, rgba(232, 249, 255, .96) 0%, rgba(245, 249, 255, .98) 38%, #eef4ff 100%);
   color: #10204a;
   isolation: isolate;
 }
@@ -55,12 +56,26 @@ body {
   z-index: -1;
   content: "";
   background:
-    radial-gradient(circle at 84% 8%, rgba(77, 153, 255, .20), transparent 28%),
-    radial-gradient(circle at 12% 55%, rgba(86, 212, 220, .14), transparent 30%),
+    radial-gradient(circle at 84% 8%, rgba(50, 141, 255, .28), transparent 28%),
+    radial-gradient(circle at 12% 55%, rgba(24, 205, 214, .22), transparent 30%),
     linear-gradient(rgba(50, 93, 160, .045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(50, 93, 160, .045) 1px, transparent 1px);
   background-size: auto, auto, 72px 72px, 72px 72px;
   mask-image: linear-gradient(to bottom, black, rgba(0,0,0,.4) 75%, transparent);
+}
+
+.tw-home::after {
+  position: absolute;
+  top: 88px;
+  right: -12%;
+  z-index: -1;
+  width: 72%;
+  height: 210px;
+  border-radius: 50%;
+  content: "";
+  border: 28px solid rgba(67, 157, 244, .08);
+  transform: rotate(-8deg);
+  box-shadow: 0 34px 0 rgba(44, 201, 211, .055), 0 68px 0 rgba(58, 111, 236, .04);
 }
 
 .tw-home__glow { position: absolute; z-index: -1; border-radius: 999px; filter: blur(90px); opacity: .25; }
@@ -95,7 +110,8 @@ body {
   overflow: hidden;
   border: 1px solid rgba(49, 82, 139, .12);
   border-radius: 22px;
-  background: rgba(255,255,255,.82);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--service-accent) 8%, white), rgba(255,255,255,.94) 48%);
   padding: 26px;
   text-align: left;
   color: #14234b;
@@ -120,13 +136,35 @@ body {
 
 @media (max-width: 760px) {
   .tw-home__header, .tw-home__footer, .tw-home__main { width: min(100% - 32px, 1180px); }
-  .tw-home__header { padding-top: 20px; }
+  .tw-home::after { top: 54px; right: -50%; width: 120%; height: 140px; border-width: 18px; }
+  .tw-home__header { padding: 14px 0 8px; }
+  .tw-home__logo svg { width: 30px; height: 24px; }
+  .tw-home__logo > div { display: none; }
   .tw-home__header p { display: none; }
-  .tw-home__main { padding-top: 7vh; }
-  .tw-home__hero h1 { font-size: clamp(40px, 12vw, 58px); }
+  .tw-home__main { padding: 18px 0 30px; }
+  .tw-home__kicker { margin-bottom: 10px; font-size: 9px; }
+  .tw-home__hero h1 { font-size: clamp(34px, 9.5vw, 42px); line-height: 1.06; letter-spacing: -.06em; }
+  .tw-home__lead { margin-top: 14px; font-size: 12px; line-height: 1.65; }
   .tw-home__lead br { display: none; }
-  .tw-home__services { grid-template-columns: 1fr; margin-top: 50px; }
-  .tw-service-card { min-height: 272px; }
+  .tw-home__services { grid-template-columns: 1fr; gap: 10px; margin-top: 24px; }
+  .tw-service-card {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 44px minmax(0, 1fr) 24px;
+    grid-template-rows: auto auto auto;
+    column-gap: 13px;
+    padding: 15px 16px;
+    border-radius: 17px;
+  }
+  .tw-service-card__number { position: absolute; top: 12px; right: 14px; font-size: 8px; }
+  .tw-service-card__icon { grid-column: 1; grid-row: 1 / 4; width: 44px; height: 44px; margin: 3px 0 0; border-radius: 12px; }
+  .tw-service-card__icon svg { width: 23px; }
+  .tw-service-card__eyebrow { grid-column: 2; grid-row: 1; font-size: 9px; }
+  .tw-service-card strong { grid-column: 2; grid-row: 2; margin-top: 2px; font-size: 19px; }
+  .tw-service-card__description { grid-column: 2; grid-row: 3; max-width: none; margin-top: 4px; padding-right: 4px; font-size: 10px; line-height: 1.45; }
+  .tw-service-card__action { grid-column: 3; grid-row: 1 / 4; width: auto; margin: 0; padding: 0; align-self: center; font-size: 0; }
+  .tw-service-card__action span { font-size: 18px; color: var(--service-accent); }
+  .tw-home__footer { padding: 15px 0 20px; font-size: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
