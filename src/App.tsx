@@ -18,6 +18,8 @@ import { CharacterSettingsScreen } from "./components/sticker/CharacterSettingsS
 import { useExpeditionGuideData } from "./state/useExpeditionGuideData";
 import { ExpeditionGuideScreen } from "./components/expedition/ExpeditionGuideScreen";
 import { InstagramAiScreen } from "./components/instagram-ai/InstagramAiScreen";
+import { TokyoWavesHome } from "./components/home/TokyoWavesHome";
+import { TokyoWavesLogo } from "./components/brand/TokyoWavesLogo";
 import {
   buildBracketData,
   buildLeagueGroups,
@@ -40,6 +42,7 @@ import type { Theme } from "./components/preview/theme";
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 
 type AppMode =
+  | "home"
   | "tournament"
   | "sticker"
   | "character-settings"
@@ -47,6 +50,7 @@ type AppMode =
   | "instagram-ai";
 
 const MODE_TABS: { id: AppMode; label: string }[] = [
+  { id: "home", label: "ホーム" },
   { id: "tournament", label: "大会画像作成" },
   { id: "sticker", label: "スタンプ制作" },
   { id: "character-settings", label: "キャラクター設定" },
@@ -102,7 +106,7 @@ interface AnalysisSummary {
 
 function App() {
   const [mode, setMode] = useState<AppMode>(
-    () => getModeFromUrl() ?? "tournament",
+    () => getModeFromUrl() ?? "home",
   );
   const stickerData = useStickerData();
   const expeditionGuideData = useExpeditionGuideData();
@@ -111,7 +115,11 @@ function App() {
   // 同じタブが開いた状態を再現できるようにする。
   useEffect(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set(TOOL_QUERY_PARAM, mode);
+    if (mode === "home") {
+      url.searchParams.delete(TOOL_QUERY_PARAM);
+    } else {
+      url.searchParams.set(TOOL_QUERY_PARAM, mode);
+    }
     window.history.replaceState(null, "", url);
   }, [mode]);
 
@@ -297,7 +305,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={mode === "home" ? "min-h-screen" : "min-h-screen bg-gray-50"}>
       {restorePromptOpen && pendingRestore && (
         <RestorePrompt
           savedAt={pendingRestore.savedAt}
@@ -305,10 +313,23 @@ function App() {
           onDiscard={handleDiscardAutoSave}
         />
       )}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">
-          TokyoWAVES Media Factory
-        </h1>
+      {mode === "home" && <TokyoWavesHome onOpen={setMode} />}
+
+      {mode !== "home" && <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3">
+        <button
+          type="button"
+          onClick={() => setMode("home")}
+          className="flex items-center gap-3 text-left text-[#0d1230] transition-opacity hover:opacity-70"
+          aria-label="東京WAVES ホームへ戻る"
+        >
+          <TokyoWavesLogo markOnly scale={0.72} />
+          <span>
+            <span className="block text-[10px] font-bold tracking-[0.18em] text-gray-400">TOKYO WAVES</span>
+            <span className="block text-base font-black">
+              {mode === "instagram-ai" ? "SNS Agent" : mode === "expedition-guide" ? "Scout" : "Media Factory"}
+            </span>
+          </span>
+        </button>
         {mode === "tournament" && (
           <ProjectBar
             snapshot={{
@@ -341,11 +362,15 @@ function App() {
             />
           </div>
         )}
-      </header>
+      </header>}
 
-      <nav className="border-b border-gray-200 bg-white px-6">
+      {mode !== "home" && <nav className="border-b border-gray-200 bg-white px-6">
         <div className="mx-auto flex max-w-5xl gap-1">
-          {MODE_TABS.map((tab) => (
+          {MODE_TABS.filter((tab) => {
+            if (mode === "instagram-ai") return tab.id === "instagram-ai";
+            if (mode === "expedition-guide") return tab.id === "expedition-guide";
+            return ["tournament", "sticker", "character-settings"].includes(tab.id);
+          }).map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -360,7 +385,7 @@ function App() {
             </button>
           ))}
         </div>
-      </nav>
+      </nav>}
 
       {mode === "tournament" && (
         <div className="mx-auto max-w-5xl px-6 pt-6">
@@ -368,7 +393,7 @@ function App() {
         </div>
       )}
 
-      <main className={mode === "tournament" ? "mx-auto max-w-5xl px-6 py-8" : ""}>
+      {mode !== "home" && <main className={mode === "tournament" ? "mx-auto max-w-5xl px-6 py-8" : ""}>
         {mode === "tournament" && (
           <>
             {wizardStep === "upload" && (
@@ -448,7 +473,7 @@ function App() {
         )}
 
         {mode === "instagram-ai" && <InstagramAiScreen />}
-      </main>
+      </main>}
     </div>
   );
 }
