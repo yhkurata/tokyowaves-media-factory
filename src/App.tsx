@@ -9,7 +9,6 @@ import { AnalyzingStep } from "./components/wizard/AnalyzingStep";
 import { ConfirmStep } from "./components/wizard/ConfirmStep";
 import { ExportStep } from "./components/wizard/ExportStep";
 import { ProjectBar } from "./components/wizard/ProjectBar";
-import { RestorePrompt } from "./components/wizard/RestorePrompt";
 import { useStickerData } from "./state/useStickerData";
 import { StickerProjectBar } from "./components/sticker/StickerProjectBar";
 import { StickerProjectSwitcher } from "./components/sticker/StickerProjectSwitcher";
@@ -30,7 +29,7 @@ import {
   type ExtractionResult,
 } from "./lib/extraction";
 import type { ProjectData } from "./lib/projectFile";
-import { saveAutoSnapshot, loadAutoSnapshot, clearAutoSnapshot } from "./lib/autoSave";
+import { saveAutoSnapshot, loadAutoSnapshot } from "./lib/autoSave";
 import {
   tournamentHasData,
   leaguesHasData,
@@ -140,15 +139,15 @@ function App() {
   const timetableData = useTimetableData();
   const bracketData = useBracketData();
 
-  // 起動時に自動保存データがあれば復元確認を出す。復元/破棄が決まるまで自動保存自体は止めておく
-  // （破棄を選んだのに直後の自動保存で復元プロンプト用データが上書きされるのを防ぐため）。
-  const [pendingRestore] = useState<ProjectData | null>(() => {
+  // 前回の作業データがあれば確認を挟まず、自動的に続きから再開する。
+  const [initialSnapshot] = useState<ProjectData | null>(() => {
     const snapshot = loadAutoSnapshot();
     return snapshot && snapshotHasAnyData(snapshot) ? snapshot : null;
   });
-  const [restorePromptOpen, setRestorePromptOpen] = useState(
-    pendingRestore !== null,
+  const [autoRestoreComplete, setAutoRestoreComplete] = useState(
+    initialSnapshot === null,
   );
+  const autoRestoreStartedRef = useRef(false);
 
   const [selectedDayId, setSelectedDayId] = useState("");
   const [selectedVenueId, setSelectedVenueId] = useState("");
@@ -211,20 +210,20 @@ function App() {
     setWizardStep("confirm");
   };
 
-  const handleRestoreAutoSave = () => {
-    if (pendingRestore) handleLoadProject(pendingRestore);
-    setRestorePromptOpen(false);
-  };
+  const handleLoadProjectRef = useRef(handleLoadProject);
+  handleLoadProjectRef.current = handleLoadProject;
 
-  const handleDiscardAutoSave = () => {
-    clearAutoSnapshot();
-    setRestorePromptOpen(false);
-  };
+  useEffect(() => {
+    if (autoRestoreStartedRef.current || !initialSnapshot) return;
+    autoRestoreStartedRef.current = true;
+    handleLoadProjectRef.current(initialSnapshot);
+    setAutoRestoreComplete(true);
+  }, [initialSnapshot]);
 
-  // 入力内容を自動保存する（復元プロンプトの応答が済むまでは待機）
+  // 復元前の空データで保存内容を上書きしないよう、復元完了後に自動保存を始める。
   const autoSaveTimeoutRef = useRef<number | undefined>(undefined);
   useEffect(() => {
-    if (restorePromptOpen) return;
+    if (!autoRestoreComplete) return;
     if (autoSaveTimeoutRef.current !== undefined) {
       window.clearTimeout(autoSaveTimeoutRef.current);
     }
@@ -244,7 +243,7 @@ function App() {
       }
     };
   }, [
-    restorePromptOpen,
+    autoRestoreComplete,
     tournament,
     leagueData.leagues,
     timetableData.info,
@@ -312,13 +311,6 @@ function App() {
 
   return (
     <div className={mode === "home" ? "min-h-screen" : "min-h-screen bg-gray-50"}>
-      {restorePromptOpen && pendingRestore && (
-        <RestorePrompt
-          savedAt={pendingRestore.savedAt}
-          onRestore={handleRestoreAutoSave}
-          onDiscard={handleDiscardAutoSave}
-        />
-      )}
       {mode === "home" && <TokyoWavesHome />}
 
       {mode !== "home" && <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3">
