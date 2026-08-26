@@ -91,7 +91,7 @@ function ServiceIcon({ type }: { type: "media" | "sns" | "scout" | "expedition" 
 export function TokyoWavesHome() {
   const handleOpen = (destination: Destination) => {
     if (destination === "scout") {
-      window.location.assign("https://waves-scout-v0.vercel.app/");
+      window.location.assign("https://tokyowaves-scout.vercel.app/");
       return;
     }
     const url = new URL(window.location.href);

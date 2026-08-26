@@ -116,7 +116,7 @@ function App() {
   // 同じタブが開いた状態を再現できるようにする。
   useEffect(() => {
     if (mode === "scout") {
-      window.location.replace("https://waves-scout-v0.vercel.app/");
+      window.location.replace("https://tokyowaves-scout.vercel.app/");
       return;
     }
     const url = new URL(window.location.href);
