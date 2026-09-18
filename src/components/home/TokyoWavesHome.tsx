@@ -22,7 +22,7 @@ const SERVICES: {
   {
     id: "scout",
     number: "01",
-    name: "Analysis",
+    name: "試合分析",
     eyebrow: "ささえる",
     description: "試合を観ながらチームと選手の気づきを残し、コーチ全員で共有する。",
     action: "分析をはじめる",
@@ -32,7 +32,7 @@ const SERVICES: {
   {
     id: "expedition-guide",
     number: "02",
-    name: "遠征Guide",
+    name: "遠征案内",
     eyebrow: "まとめる",
     description: "遠征情報から、LINE・メール・印刷用の案内をまとめてつくる。",
     action: "遠征要項をつくる",
@@ -42,7 +42,7 @@ const SERVICES: {
   {
     id: "tournament",
     number: "03",
-    name: "Media Factory",
+    name: "画像制作",
     eyebrow: "つくる",
     description: "大会資料から投稿画像をつくる。スタンプやキャラクターの制作もここから。",
     action: "制作をはじめる",
@@ -52,7 +52,7 @@ const SERVICES: {
   {
     id: "instagram-ai",
     number: "04",
-    name: "SNS Agent",
+    name: "SNS投稿",
     eyebrow: "とどける",
     description: "ブランドを理解したAIと、次のInstagram投稿を考え、育てる。",
     action: "投稿を考える",
@@ -62,7 +62,7 @@ const SERVICES: {
   {
     id: "review",
     number: "05",
-    name: "Review",
+    name: "指導動画",
     eyebrow: "ふりかえる",
     description: "試合・練習動画に3秒停止と指示を加え、選手へ共有する指導動画をつくる。",
     action: "指導動画をつくる",

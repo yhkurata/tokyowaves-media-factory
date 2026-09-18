@@ -54,8 +54,8 @@ const MODE_TABS: { id: AppMode; label: string }[] = [
   { id: "tournament", label: "大会画像作成" },
   { id: "sticker", label: "スタンプ制作" },
   { id: "character-settings", label: "キャラクター設定" },
-  { id: "expedition-guide", label: "遠征Guide" },
-  { id: "instagram-ai", label: "Instagram AI" },
+  { id: "expedition-guide", label: "遠征案内" },
+  { id: "instagram-ai", label: "SNS投稿" },
   { id: "scout", label: "対戦相手メモ" },
 ];
 
@@ -325,12 +325,12 @@ function App() {
             <span className="block text-[10px] font-bold tracking-[0.18em] text-gray-400">TOKYO WAVES</span>
             <span className="block text-base font-black">
               {mode === "instagram-ai"
-                ? "SNS Agent"
+                ? "SNS投稿"
                 : mode === "scout"
-                  ? "Analysis"
+                  ? "試合分析"
                   : mode === "expedition-guide"
-                    ? "遠征Guide"
-                    : "Media Factory"}
+                    ? "遠征案内"
+                    : "画像制作"}
             </span>
           </span>
         </button>
