@@ -99,7 +99,7 @@ body {
 .tw-home__hero h1 { margin: 0; font-size: clamp(44px, 6vw, 76px); line-height: 1.14; letter-spacing: -.055em; font-weight: 900; }
 .tw-home__hero h1 span { color: #3476ef; }
 .tw-home__lead { margin: 28px 0 0; color: #657493; font-size: 15px; line-height: 1.9; }
-.tw-home__services { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: clamp(54px, 8vh, 88px); }
+.tw-home__services { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: clamp(54px, 8vh, 88px); }
 
 .tw-service-card {
   position: relative;
