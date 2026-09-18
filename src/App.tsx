@@ -327,7 +327,7 @@ function App() {
               {mode === "instagram-ai"
                 ? "SNS Agent"
                 : mode === "scout"
-                  ? "Scout"
+                  ? "Analysis"
                   : mode === "expedition-guide"
                     ? "遠征Guide"
                     : "Media Factory"}

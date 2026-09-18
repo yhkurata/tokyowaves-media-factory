@@ -22,7 +22,7 @@ const SERVICES: {
   {
     id: "scout",
     number: "01",
-    name: "Scout",
+    name: "Analysis",
     eyebrow: "ささえる",
     description: "試合を観ながらチームと選手の気づきを残し、コーチ全員で共有する。",
     action: "分析をはじめる",
