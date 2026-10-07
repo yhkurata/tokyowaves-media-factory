@@ -4,7 +4,10 @@ type Destination =
   | "tournament"
   | "instagram-ai"
   | "scout"
-  | "expedition-guide";
+  | "expedition-guide"
+  | "review";
+
+type ServiceIconType = "media" | "sns" | "scout" | "expedition" | "review";
 
 const SERVICES: {
   id: Destination;
@@ -14,12 +17,12 @@ const SERVICES: {
   description: string;
   action: string;
   accent: string;
-  icon: "media" | "sns" | "scout" | "expedition";
+  icon: ServiceIconType;
 }[] = [
   {
     id: "scout",
     number: "01",
-    name: "Scout",
+    name: "試合分析",
     eyebrow: "ささえる",
     description: "試合を観ながらチームと選手の気づきを残し、コーチ全員で共有する。",
     action: "分析をはじめる",
@@ -29,7 +32,7 @@ const SERVICES: {
   {
     id: "expedition-guide",
     number: "02",
-    name: "遠征Guide",
+    name: "遠征案内",
     eyebrow: "まとめる",
     description: "遠征情報から、LINE・メール・印刷用の案内をまとめてつくる。",
     action: "遠征要項をつくる",
@@ -39,7 +42,7 @@ const SERVICES: {
   {
     id: "tournament",
     number: "03",
-    name: "Media Factory",
+    name: "画像制作",
     eyebrow: "つくる",
     description: "大会資料から投稿画像をつくる。スタンプやキャラクターの制作もここから。",
     action: "制作をはじめる",
@@ -49,16 +52,26 @@ const SERVICES: {
   {
     id: "instagram-ai",
     number: "04",
-    name: "SNS Agent",
+    name: "SNS投稿",
     eyebrow: "とどける",
     description: "ブランドを理解したAIと、次のInstagram投稿を考え、育てる。",
     action: "投稿を考える",
     accent: "#ef3f72",
     icon: "sns",
   },
+  {
+    id: "review",
+    number: "05",
+    name: "指導動画",
+    eyebrow: "ふりかえる",
+    description: "試合・練習動画に3秒停止と指示を加え、選手へ共有する指導動画をつくる。",
+    action: "指導動画をつくる",
+    accent: "#7c4dff",
+    icon: "review",
+  },
 ];
 
-function ServiceIcon({ type }: { type: "media" | "sns" | "scout" | "expedition" }) {
+function ServiceIcon({ type }: { type: ServiceIconType }) {
   if (type === "media") {
     return (
       <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -81,6 +94,12 @@ function ServiceIcon({ type }: { type: "media" | "sns" | "scout" | "expedition" 
       <path d="m29 29 10 10M21 15v12M15 21h12" />
     </svg>
   );
+  if (type === "review") return (
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="7" y="10" width="34" height="25" rx="4" />
+      <path d="m21 18 9 5-9 5zM14 40h20M20 35v5M28 35v5" />
+    </svg>
+  );
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true">
       <path d="M12 16h24v24H12zM18 16v-4h12v4M12 26h24M22 26v4h4v-4" />
@@ -92,6 +111,10 @@ export function TokyoWavesHome() {
   const handleOpen = (destination: Destination) => {
     if (destination === "scout") {
       window.location.assign("https://tokyowaves-scout.vercel.app/");
+      return;
+    }
+    if (destination === "review") {
+      window.location.assign("https://waves-review-v0-1-waves-review.vercel.app/");
       return;
     }
     const url = new URL(window.location.href);
