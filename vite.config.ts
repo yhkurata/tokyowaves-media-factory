@@ -5,6 +5,7 @@ import { extractApiPlugin } from './server/viteExtractPlugin'
 import { stickerApiPlugin } from './server/viteStickerApiPlugin'
 import { instagramAiApiPlugin } from './server/viteInstagramAiApiPlugin'
 import { expeditionGuideTemplateApiPlugin } from './server/viteExpeditionGuideTemplateApiPlugin'
+import { expeditionGuideHistoryApiPlugin } from './server/viteExpeditionGuideHistoryApiPlugin'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -25,6 +26,7 @@ export default defineConfig(({ mode }) => {
       stickerApiPlugin(env.ANTHROPIC_API_KEY),
       instagramAiApiPlugin(env.ANTHROPIC_API_KEY),
       expeditionGuideTemplateApiPlugin(),
+      expeditionGuideHistoryApiPlugin(),
     ],
   }
 })

@@ -52,7 +52,9 @@ export function useExpeditionGuideData() {
   };
 
   const generate = () => {
-    setOutput(buildExpeditionGuideOutput(input));
+    const next = buildExpeditionGuideOutput(input);
+    setOutput(next);
+    return next;
   };
 
   return {

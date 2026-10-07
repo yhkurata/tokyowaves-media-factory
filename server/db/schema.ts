@@ -7,7 +7,17 @@ import {
   boolean,
   pgEnum,
   doublePrecision,
+  index,
 } from "drizzle-orm/pg-core";
+import type { ExpeditionGuideInput, ExpeditionGuideOutput } from '../../src/types/expeditionGuide.js';
+
+export const expeditionGuideHistory = pgTable('expedition_guide_history', {
+  id: text('id').primaryKey(),
+  input: jsonb('input').$type<ExpeditionGuideInput>().notNull(),
+  output: jsonb('output').$type<ExpeditionGuideOutput>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [index('expedition_guide_history_created_idx').on(table.createdAt)]);
 
 // ============================================================
 // brand_context: 単一レコード（id は常に "default"）。
